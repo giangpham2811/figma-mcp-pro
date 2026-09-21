@@ -113,22 +113,21 @@ Khởi động lại Claude Desktop. Đường dẫn phải **tuyệt đối**.
 
 ---
 
-## 4. Claude Cowork — không dùng được, và lý do
+## 4. Claude Cowork — dùng được, qua relay
 
-Nói thẳng để bạn khỏi mất thời gian: **Cowork chạy trong VM sandbox**, không
-spawn được tiến trình stdio trên máy bạn và không nhìn thấy `localhost` của
-bạn. Mà kiến trúc này **bắt buộc** phải chạm tới Figma Desktop đang chạy
-trên máy bạn.
+Cowork chạy trên đám mây nên không thấy `localhost` của bạn. Cách nối là
+một **relay trên Cloudflare Workers**: plugin gọi ra, Cowork gọi vào, hai
+bên gặp nhau ở đó. Có xác minh email công ty thật qua Cloudflare Access, và
+nằm trong free tier.
 
-Không phải chuyện thiếu cấu hình. Là chuyện hai bên ở hai máy khác nhau.
+**[→ docs/COWORK.md](./COWORK.md)** có đủ các bước.
 
-Có người vòng được bằng `supergateway` + tunnel để lộ server ra một URL
-công khai, nhưng khi đó bạn đang mở một cổng điều khiển được Figma của mình
-ra Internet. Với công cụ này thì cái giá đó không đáng — **dùng Claude
-Code**, nơi nó chạy đúng như thiết kế.
+Khác biệt cần biết: trên Cowork **không có** `figma_write`, design system,
+và slash command — chỉ có 9 loại diagram cùng phần đọc/soát. Đó là phần
+người non-tech cần, còn ai cần sandbox thì dùng Claude Code.
 
-Cùng lý do đó: Figma trên **trình duyệt** cũng không dùng được, vì
-*Import plugin from manifest* chỉ có ở bản Desktop.
+Riêng Figma trên **trình duyệt** thì vẫn không dùng được, vì *Import plugin
+from manifest* chỉ có ở bản Desktop — trừ khi plugin đã được publish.
 
 ---
 

@@ -39,8 +39,12 @@ It exists because the current generation of Figma MCPs make agents responsible f
 ## Dùng trong Claude Code
 
 **[→ Hướng dẫn đầy đủ bằng tiếng Việt: docs/HUONG-DAN.md](docs/HUONG-DAN.md)**
-— cài đặt, kết nối Claude Code / Claude Desktop, vì sao Claude Cowork không
-dùng được, sáu slash command, và bảng khắc phục sự cố.
+— cài đặt, kết nối Claude Code / Claude Desktop, sáu slash command, khắc
+phục sự cố.
+
+**[→ Dùng với Claude Cowork: docs/COWORK.md](docs/COWORK.md)** — relay trên
+Cloudflare Workers, xác minh email công ty qua Cloudflare Access, ghép cặp
+một nút cho người không rành kỹ thuật.
 
 Đường tắt:
 

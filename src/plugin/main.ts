@@ -34,6 +34,10 @@ type UiToMain =
   | { kind: "request"; payload: BridgeRequest }
   | { kind: "hello-request" }
   | { kind: "save-channel"; channel: string | null; resumeToken?: string | null }
+  // Remote relay settings, for the Cowork path. Stored per USER, not per
+  // file: the relay and the workspace key belong to the person, while a
+  // channel belongs to a file.
+  | { kind: "save-relay"; relay: RelayConfig | null }
   // The panel is resizable: only the main thread may call figma.ui.resize(),
   // so the iframe measures the drag and sends the size here.
   | { kind: "resize"; width: number; height: number }
@@ -42,7 +46,7 @@ type UiToMain =
   | { kind: "local"; id: string; op: string; params?: Record<string, unknown> };
 
 type MainToUi =
-  | { kind: "handshake"; pluginVersion: string; protocolVersion: number }
+  | { kind: "handshake"; pluginVersion: string; protocolVersion: number; relay: RelayConfig | null }
   | { kind: "hello"; hello: HelloData }
   | { kind: "context"; reason: "selection" | "page"; hello: HelloData }
   | { kind: "response"; payload: BridgeResponse; op: Operation }
@@ -84,6 +88,25 @@ interface HelloData {
 function post(msg: MainToUi): void {
   figma.ui.postMessage(msg);
 }
+
+/**
+ * How to reach a relay, when the plugin is not talking to localhost.
+ *
+ * `host` is the origin only (`https://x.workers.dev`); the paths are built
+ * from it, so a user pasting a full URL with `/mcp/...` on the end still
+ * works after normalisation. `roomId` arrives from pairing and is the
+ * secret that Cowork also holds.
+ */
+export interface RelayConfig {
+  host: string;
+  roomId: string;
+  /** Only for deployments using a shared key instead of Access pairing. */
+  key?: string;
+  /** Shown in the panel so the user can see who they paired as. */
+  email?: string;
+}
+
+const RELAY_KEY = "reqwise.relay";
 
 /** clientStorage key for this file's channel — a window shows one file, so
  * per-file persistence makes reopening the plugin rejoin the same channel. */
@@ -298,6 +321,35 @@ if (missing.length > 0) {
 
 // Restore this file's channel before the UI connects (the UI asks for
 // handshake/hello first, and hello carries the stored channel).
+let storedRelay: RelayConfig | null = null;
+
+/**
+ * Relay settings load in parallel with the channel.
+ *
+ * Both have to be in hand before the UI connects, because the UI asks for
+ * the handshake first and then immediately dials — if the relay config
+ * arrived late the plugin would open a localhost socket, fail, and only
+ * then switch, which looks like a broken relay rather than a race.
+ */
+const relayLoaded: Promise<void> = figma.clientStorage
+  .getAsync(RELAY_KEY)
+  .then((v) => {
+    if (v && typeof v === "object") {
+      const o = v as Partial<RelayConfig>;
+      if (typeof o.host === "string" && typeof o.roomId === "string" && o.host && o.roomId) {
+        storedRelay = {
+          host: o.host,
+          roomId: o.roomId,
+          ...(typeof o.key === "string" && o.key ? { key: o.key } : {}),
+          ...(typeof o.email === "string" && o.email ? { email: o.email } : {}),
+        };
+      }
+    }
+  })
+  .catch(() => {
+    /* first run / storage unavailable — stay on localhost */
+  });
+
 const channelLoaded: Promise<void> = figma.clientStorage
   .getAsync(channelStorageKey())
   .then((v) => {
@@ -322,11 +374,15 @@ figma.ui.onmessage = async (msg: UiToMain) => {
   if (!msg || typeof msg !== "object") return;
   switch (msg.kind) {
     case "handshake":
-      await channelLoaded;
+      // Both, not just the channel: the UI dials immediately after the
+      // handshake, so a relay config that arrived a tick later would send
+      // it to localhost first and look like a broken relay.
+      await Promise.all([channelLoaded, relayLoaded]);
       post({
         kind: "handshake",
         pluginVersion: PLUGIN_VERSION,
         protocolVersion: PROTOCOL_VERSION,
+        relay: storedRelay,
       });
       // Fall through to also send fresh hello data.
       post({ kind: "hello", hello: helloData() });
@@ -335,6 +391,17 @@ figma.ui.onmessage = async (msg: UiToMain) => {
       await channelLoaded;
       post({ kind: "hello", hello: helloData() });
       break;
+    case "save-relay": {
+      storedRelay = msg.relay;
+      try {
+        if (msg.relay) await figma.clientStorage.setAsync(RELAY_KEY, msg.relay);
+        else await figma.clientStorage.deleteAsync(RELAY_KEY);
+      } catch {
+        /* storage unavailable; the panel keeps working for this session */
+      }
+      return;
+    }
+
     case "save-channel": {
       storedChannel = msg.channel;
       storedResumeToken =

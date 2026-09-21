@@ -249,6 +249,46 @@
     <button id="retry" class="primary">Reconnect</button>
   </div>
 
+  <div class="section-label">Claude Cowork</div>
+  <div class="cowork" id="cowork">
+    <div class="cowork-body" id="coworkBody">
+      <p class="cowork-hint" id="coworkHint">
+        Cowork chạy trên đám mây nên không thấy máy bạn. Ghép cặp một lần để nối qua relay.
+      </p>
+      <label class="cowork-field">
+        <span>Relay</span>
+        <input id="relayHost" type="text" spellcheck="false" placeholder="https://ten-relay.workers.dev">
+      </label>
+      <div class="actions">
+        <button id="pairStart" class="primary">Ghép cặp với Cowork</button>
+        <button id="pairForget" class="danger" hidden>Ngắt</button>
+      </div>
+    </div>
+
+    <div class="cowork-pairing" id="coworkPairing" hidden>
+      <div class="pair-code" id="pairCode">------</div>
+      <p class="cowork-hint">
+        Mở đường dẫn dưới đây, đăng nhập bằng email công ty, rồi quay lại đây.
+      </p>
+      <div class="actions">
+        <button id="pairOpen" class="primary">Mở trang đăng nhập</button>
+        <button id="pairCancel">Huỷ</button>
+      </div>
+      <p class="cowork-hint" id="pairState">Đang chờ xác minh…</p>
+    </div>
+
+    <div class="cowork-paired" id="coworkPaired" hidden>
+      <p class="cowork-hint">
+        Đã ghép cặp<span id="pairedEmail"></span>. Dán đường dẫn này vào Cowork →
+        Settings → Connectors → Add custom connector.
+      </p>
+      <div class="cowork-url">
+        <input id="mcpUrl" type="text" readonly spellcheck="false">
+        <button id="copyUrl">Chép</button>
+      </div>
+    </div>
+  </div>
+
   <div class="foot" id="foot">Connects to the local Reqwise bridge (localhost:38470 +9).</div>
 </div>
 
@@ -258,6 +298,27 @@
   </svg>
 </div>
 
+<style>
+  /* Cowork pairing. Every control clears 44px: this panel is used on a
+     laptop trackpad mid-meeting, and a 32px button is a missed click. */
+  .cowork { border: 1px solid var(--line, #dfe4ea); border-radius: 8px; padding: 12px; margin-top: 6px; }
+  .cowork-hint { margin: 0 0 10px; font-size: 11px; line-height: 1.5; opacity: .75; }
+  .cowork-field { display: block; margin-bottom: 10px; }
+  .cowork-field span { display: block; font-size: 11px; opacity: .75; margin-bottom: 4px; }
+  .cowork-field input, .cowork-url input {
+    width: 100%; box-sizing: border-box; min-height: 44px; padding: 0 10px;
+    font: 11px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+    border: 1px solid var(--line, #dfe4ea); border-radius: 6px;
+    background: var(--card, #f6f8fa); color: inherit;
+  }
+  .cowork-url { display: flex; gap: 6px; align-items: stretch; }
+  .cowork-url button { flex: 0 0 auto; min-height: 44px; }
+  .pair-code {
+    font: 600 26px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+    letter-spacing: 6px; text-align: center; padding: 12px 0 14px;
+  }
+  .cowork button.danger { color: #c0392b; }
+</style>
 <script>
 (function () {
   "use strict";
@@ -295,6 +356,38 @@
     create_state: 1, create_sitemap: 1, reflow_diagram: 1
   };
 
+  // ---- relay (Claude Cowork) ----
+  //
+  // Two ways this plugin can be reached, and they are mutually exclusive.
+  // Local: Claude Code spawns a server on this machine and the plugin dials
+  // localhost. Relay: Cowork runs in Anthropic's cloud and cannot see this
+  // machine at all, so both sides dial a public Worker and meet there.
+  //
+  // `relay` non-null means we are in the second mode. It is loaded from
+  // clientStorage before the first dial, so we never open a doomed
+  // localhost socket first and make a working relay look broken.
+  var relay = null;            // { host, roomId, key?, email? }
+  var pairing = null;          // { code, loginUrl, timer, deadline }
+  var PAIR_POLL_MS = 2000;
+
+  /** Origin only: a user who pastes a full /mcp/... URL still gets it right. */
+  function relayOrigin(raw) {
+    var v = String(raw || "").trim();
+    if (!v) return "";
+    if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+    try { return new URL(v).origin; } catch (e) { return ""; }
+  }
+
+  function relayWsUrl() {
+    var origin = relay.host.replace(/^http/i, "ws");
+    var url = origin + "/ws/" + encodeURIComponent(relay.roomId);
+    return relay.key ? url + "?key=" + encodeURIComponent(relay.key) : url;
+  }
+
+  function mcpUrl() {
+    return relay.host + "/mcp/" + relay.roomId;
+  }
+
   // ---- state ----
   var ws = null;
   var portIndex = 0;               // which port in the fallback range we are trying
@@ -323,6 +416,20 @@
     clear: document.getElementById("clear"),
     autodetect: document.getElementById("autodetect"),
     activity: document.getElementById("activity"),
+    coworkHint: document.getElementById("coworkHint"),
+    relayHost: document.getElementById("relayHost"),
+    pairStart: document.getElementById("pairStart"),
+    pairForget: document.getElementById("pairForget"),
+    coworkBody: document.getElementById("coworkBody"),
+    coworkPairing: document.getElementById("coworkPairing"),
+    coworkPaired: document.getElementById("coworkPaired"),
+    pairCode: document.getElementById("pairCode"),
+    pairOpen: document.getElementById("pairOpen"),
+    pairCancel: document.getElementById("pairCancel"),
+    pairState: document.getElementById("pairState"),
+    pairedEmail: document.getElementById("pairedEmail"),
+    mcpUrl: document.getElementById("mcpUrl"),
+    copyUrl: document.getElementById("copyUrl"),
     activityEmpty: document.getElementById("activity-empty"),
     statWrites: document.getElementById("stat-writes"),
     statReads: document.getElementById("stat-reads"),
@@ -541,6 +648,9 @@
     switch (msg.kind) {
       case "handshake":
         handshake = { pluginVersion: msg.pluginVersion, protocolVersion: msg.protocolVersion };
+        // Arrives before the first dial on purpose — see main.ts.
+        if (msg.relay && msg.relay.host && msg.relay.roomId) relay = msg.relay;
+        renderCowork();
         break;
       case "hello":
         hello = msg.hello;
@@ -605,11 +715,20 @@
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
     attemptCount++;
-    var port = currentPort();
-    setState("connecting", "Connecting to :" + port + "…");
+
+    var url, port = null;
+    if (relay) {
+      // No port walking on the relay: there is exactly one address, and
+      // retrying nine neighbours of it would only slow the real retry down.
+      url = relayWsUrl();
+      setState("connecting", "Connecting to relay…");
+    } else {
+      port = currentPort();
+      url = "ws://localhost:" + port + "/ws";
+      setState("connecting", "Connecting to :" + port + "…");
+    }
     renderMeta();
 
-    var url = "ws://localhost:" + port + "/ws";
     try {
       ws = new WebSocket(url);
     } catch (e) {
@@ -618,7 +737,7 @@
     }
 
     ws.onopen = function () {
-      connectedPort = port;
+      connectedPort = port;   // null on the relay; renderMeta handles that
       backoff = BACKOFF_MIN;
       attemptCount = 0;
       // This port is known-good: if the connection drops later, retry it
@@ -735,9 +854,142 @@
     if (heartbeatTimer) { clearInterval(heartbeatTimer); heartbeatTimer = null; }
   }
 
+  // ---- Cowork pairing ----
+  //
+  // The whole point: Cowork cannot see this machine, so it talks to a relay
+  // instead. But a relay room must not be handed to whoever asks, so the
+  // room id is only issued after a human proves their company email through
+  // Cloudflare Access. That proof happens in a browser, which a Figma
+  // plugin iframe is not — hence the code-and-poll dance below, the same
+  // shape as signing a TV into an account.
+
+  function renderCowork() {
+    var paired = !!relay;
+    el.coworkBody.hidden = !!pairing;
+    el.coworkPairing.hidden = !pairing;
+    el.coworkPaired.hidden = !paired || !!pairing;
+    el.pairForget.hidden = !paired;
+    el.pairStart.textContent = paired ? "Ghép cặp lại" : "Ghép cặp với Cowork";
+    if (paired) {
+      el.relayHost.value = relay.host;
+      el.mcpUrl.value = mcpUrl();
+      el.pairedEmail.textContent = relay.email ? " (" + relay.email + ")" : "";
+    }
+    if (pairing) el.pairCode.textContent = pairing.code;
+  }
+
+  function pairFail(message) {
+    stopPairing();
+    el.coworkHint.textContent = message;
+  }
+
+  function stopPairing() {
+    if (pairing && pairing.timer) clearTimeout(pairing.timer);
+    pairing = null;
+    renderCowork();
+  }
+
+  function pollPair(host, code) {
+    if (!pairing) return;
+    if (Date.now() > pairing.deadline) {
+      pairFail("Mã đã hết hạn. Bấm lại để lấy mã mới.");
+      return;
+    }
+    fetch(host + "/pair/status?code=" + encodeURIComponent(code))
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        if (!pairing) return;
+        if (body.state === "paired") {
+          relay = { host: host, roomId: body.roomId, email: body.email || "" };
+          // Persist through the main thread: clientStorage is not reachable
+          // from the iframe.
+          toMain({ kind: "save-relay", relay: relay });
+          stopPairing();
+          // Drop the localhost socket and dial the relay immediately —
+          // waiting for the next backoff tick makes it feel broken.
+          backoff = BACKOFF_MIN;
+          if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+          clearTimeout(reconnectTimer); reconnectTimer = null;
+          connect();
+          return;
+        }
+        if (body.state === "expired") {
+          pairFail("Mã đã hết hạn. Bấm lại để lấy mã mới.");
+          return;
+        }
+        pairing.timer = setTimeout(function () { pollPair(host, code); }, PAIR_POLL_MS);
+      })
+      .catch(function () {
+        // A transient network blip must not kill the pairing — only the
+        // deadline above ends it.
+        if (pairing) pairing.timer = setTimeout(function () { pollPair(host, code); }, PAIR_POLL_MS);
+      });
+  }
+
+  el.pairStart.onclick = function () {
+    var host = relayOrigin(el.relayHost.value);
+    if (!host) {
+      el.coworkHint.textContent = "Địa chỉ relay không hợp lệ. Ví dụ: https://ten-relay.workers.dev";
+      return;
+    }
+    el.pairStart.disabled = true;
+    fetch(host + "/pair/start", { method: "POST" })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (body) {
+        pairing = {
+          code: body.code,
+          loginUrl: body.loginUrl,
+          deadline: Date.now() + (body.expiresInSec || 600) * 1000,
+          timer: null
+        };
+        renderCowork();
+        el.pairState.textContent = "Đang chờ xác minh…";
+        pollPair(host, body.code);
+      })
+      .catch(function (e) {
+        el.coworkHint.textContent =
+          "Không gọi được relay (" + e.message + "). Kiểm tra địa chỉ, và kiểm tra domain đã nằm trong networkAccess của manifest chưa.";
+      })
+      .then(function () { el.pairStart.disabled = false; });
+  };
+
+  el.pairOpen.onclick = function () {
+    if (!pairing) return;
+    // openExternal is the main thread's job in some Figma builds; window.open
+    // works from the iframe and is what a plugin panel normally uses.
+    window.open(pairing.loginUrl, "_blank");
+    el.pairState.textContent = "Đã mở trình duyệt. Sau khi đăng nhập, quay lại đây.";
+  };
+
+  el.pairCancel.onclick = stopPairing;
+
+  el.pairForget.onclick = function () {
+    relay = null;
+    toMain({ kind: "save-relay", relay: null });
+    renderCowork();
+    // Back to localhost, immediately, for the same reason as above.
+    backoff = BACKOFF_MIN;
+    portIndex = 0;
+    if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+    clearTimeout(reconnectTimer); reconnectTimer = null;
+    connect();
+  };
+
+  el.copyUrl.onclick = function () {
+    el.mcpUrl.select();
+    var done = function () { el.copyUrl.textContent = "Đã chép"; };
+    if (navigator.clipboard) navigator.clipboard.writeText(el.mcpUrl.value).then(done, done);
+    else { try { document.execCommand("copy"); done(); } catch (e) {} }
+  };
+
   function scheduleReconnect(advancePort) {
     if (reconnectTimer) return;
-    if (advancePort) {
+    // The relay has one address. Walking the local port range there would
+    // spend nine dead attempts before retrying the only one that can work.
+    if (advancePort && !relay) {
       if (samePortLeft > 0) {
         // Recently-working port: burn a same-port retry before walking.
         samePortLeft--;
