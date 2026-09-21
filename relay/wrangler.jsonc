@@ -18,11 +18,11 @@
       "new_sqlite_classes": ["FigmaRoom"]
     }
   ],
-  "kv_namespaces": [{ "binding": "PAIRS", "id": "REPLACE_WITH_YOUR_KV_ID" }],
+  "kv_namespaces": [{ "binding": "PAIRS", "id": "cff04318a327476b876017298a9e2a16" }],
   "vars": {
     // Comma-separated. Empty means "trust whatever Access allowed", which
     // is only safe if the Access policy is already narrow.
-    "ALLOWED_EMAIL_DOMAINS": "yourcompany.com"
+    "ALLOWED_EMAIL_DOMAINS": "ikameglobal.com"
   },
   "observability": { "enabled": true }
 }

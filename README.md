@@ -44,7 +44,9 @@ phục sự cố.
 
 **[→ Dùng với Claude Cowork: docs/COWORK.md](docs/COWORK.md)** — relay trên
 Cloudflare Workers, xác minh email công ty qua Cloudflare Access, ghép cặp
-một nút cho người không rành kỹ thuật.
+một nút cho người không rành kỹ thuật. Relay đã deploy:
+`https://figjam-pro-relay.giangpm.workers.dev` (còn cần bật Access cho
+`/login`).
 
 Đường tắt:
 

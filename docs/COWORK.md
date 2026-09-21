@@ -18,6 +18,25 @@ công ty → dán một đường dẫn vào Cowork. Xong.
 
 ---
 
+## Relay đã deploy sẵn
+
+```
+https://figjam-pro-relay.giangpm.workers.dev
+```
+
+Đã dựng trên tài khoản `giangpm@ikameglobal.com`, `ALLOWED_EMAIL_DOMAINS`
+đặt là `ikameglobal.com`. Đã kiểm bằng cách gọi thật: `initialize`,
+`tools/list`, và một `figma_diagram` `dryRun` chạy trọn checker.
+
+**Còn một bước bắt buộc trước khi dùng được: bật Cloudflare Access cho
+`/login`** (mục 4 bên dưới). Cho tới lúc đó `/login` trả 403 kèm đúng lý
+do — nó **fail closed**, không phải fail open, nên chưa ai ghép cặp được và
+cũng không ai lọt qua.
+
+Nếu bạn dựng bản của riêng mình thì làm theo các bước dưới đây.
+
+---
+
 ## Phần dành cho người dựng (làm một lần)
 
 ### 1. Tạo KV namespace
