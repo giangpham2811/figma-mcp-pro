@@ -1,0 +1,30 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true
+  },
+  "include": [
+    "src/**/*.ts",
+    "../src/shared/**/*.ts",
+    "../src/server/errors.ts",
+    "../src/server/validate.ts",
+    "../src/server/docs-content/**/*.ts",
+    "../src/server/activity.ts",
+    "../src/server/erd.ts",
+    "../src/server/journey.ts",
+    "../src/server/persona.ts",
+    "../src/server/sequence.ts",
+    "../src/server/sitemap.ts",
+    "../src/server/state.ts",
+    "../src/server/usecase.ts",
+    "../src/server/userflow.ts"
+  ]
+}
