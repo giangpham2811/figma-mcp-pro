@@ -5,8 +5,8 @@
  * Two things have to land, and they land in different places:
  *   1. the MCP server, registered at USER scope so it is there whatever
  *      folder Claude Code is started in;
- *   2. the /figjam-pro slash command, copied into ~/.claude/commands/ for
- *      the same reason.
+ *   2. every slash command in .claude/commands/, copied into
+ *      ~/.claude/commands/ for the same reason.
  *
  *   npm run build && node scripts/install-figjam.mjs
  *
@@ -17,7 +17,7 @@
  * worse trade.
  */
 import { spawnSync } from "node:child_process";
-import { copyFileSync, existsSync, mkdirSync } from "node:fs";
+import { copyFileSync, existsSync, mkdirSync, readdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -64,9 +64,16 @@ if (add.status !== 0) {
 
 const commands = join(homedir(), ".claude", "commands");
 mkdirSync(commands, { recursive: true });
-copyFileSync(join(ROOT, ".claude", "commands", "figjam-pro.md"), join(commands, "figjam-pro.md"));
-log(`installed /figjam-pro → ${join(commands, "figjam-pro.md")}`);
+// Read the directory rather than listing the names here: a command added
+// and not installed is invisible, and the next person to add one will not
+// think to edit this file.
+const src = join(ROOT, ".claude", "commands");
+const installed = readdirSync(src).filter((f) => f.endsWith(".md"));
+for (const file of installed) copyFileSync(join(src, file), join(commands, file));
+log(`installed ${installed.length} commands → ${commands}`);
+for (const file of installed) log(`  /${file.replace(/\.md$/, "")}`);
 
 log("");
 log("Done. Restart Claude Code, then:");
-log('  /figjam-pro vẽ userflow đăng nhập theo template trên board');
+log('  /figjam-pro   vẽ userflow đăng nhập theo template trên board');
+log('  /figjam-check soát lại các bản vẽ trên board xem có mâu thuẫn không');

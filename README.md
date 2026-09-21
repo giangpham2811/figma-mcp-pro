@@ -38,33 +38,38 @@ It exists because the current generation of Figma MCPs make agents responsible f
 
 ## Dùng trong Claude Code
 
+**[→ Hướng dẫn đầy đủ bằng tiếng Việt: docs/HUONG-DAN.md](docs/HUONG-DAN.md)**
+— cài đặt, kết nối Claude Code / Claude Desktop, vì sao Claude Cowork không
+dùng được, sáu slash command, và bảng khắc phục sự cố.
+
+Đường tắt:
+
 ```bash
 npm install && npm run build
-node scripts/install-figjam.mjs      # hoặc: npm run install:figjam
+npm run install:figjam       # đăng ký MCP ở user scope + cài 6 slash command
 ```
 
-Việc đó đăng ký MCP server ở **user scope** (chạy được từ mọi thư mục) và
-cài slash command `/figjam-pro` vào `~/.claude/commands/`. Khởi động lại
-Claude Code.
+Khởi động lại Claude Code. Trong Figma **Desktop**: Plugins → Development →
+Import plugin from manifest… → `plugin/manifest.json`, chạy plugin và **giữ
+cửa sổ plugin mở** — đó là cây cầu. File phải là file bạn **có quyền edit**.
 
-Trong Figma Desktop: **Plugins → Development → Import plugin from
-manifest…** → chọn `plugin/manifest.json`. Chạy plugin và **giữ cửa sổ
-plugin mở** — đó là cây cầu.
-
-Rồi nói bằng tiếng Việt:
+| Command | Dùng khi |
+|---|---|
+| `/figjam-flow` | luồng màn hình, quy trình, vòng đời trạng thái |
+| `/figjam-scope` | phạm vi hệ thống, cây trang, story map |
+| `/figjam-user` | persona, journey, điểm đau |
+| `/figjam-data` | ERD — bảng, khoá, quan hệ |
+| `/figjam-check` | **soát, không vẽ** — tìm chỗ các bản vẽ mâu thuẫn nhau |
+| `/figjam-pro` | chưa biết mình cần gì |
 
 ```
-/figjam-pro vẽ luồng đăng nhập, có cả trường hợp sai mật khẩu
-/figjam-pro vẽ use case cho app này theo template trên board
-/figjam-pro vẽ journey của người dùng khi chờ mã OTP @docs/spec.md
+/figjam-flow vẽ luồng đăng nhập, có cả trường hợp sai mật khẩu
+/figjam-scope vẽ use case cho app này theo template trên board
+/figjam-check soát xem các bản vẽ trên trang có mâu thuẫn nhau không
 ```
 
-Command tự chọn loại diagram, hỏi phần thiếu, **kiểm model trước khi vẽ**, và
-báo lại những gì checker tìm thấy. Chín skill `/figma-*` vẫn dùng được khi
-bạn đã biết mình cần loại nào.
-
-Server đăng ký dưới tên `reqwise-figma`, vì đó là tên chín skill gọi tới.
-Tên slash command độc lập với nó.
+Server đăng ký dưới tên `reqwise-figma`, vì đó là tên chín skill `/figma-*`
+gọi tới. Tên slash command độc lập với nó.
 
 ## Free vs Pro
 
