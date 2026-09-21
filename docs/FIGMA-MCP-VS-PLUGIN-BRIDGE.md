@@ -152,9 +152,39 @@ vì 12 lần gọi tool với 12 khối JSON.
 Phần này quan trọng ngang phần trên. Đừng để ai bán cho bạn cái này như một
 phương án thay thế toàn diện — nó không phải.
 
-**Vẫn phải có tài khoản Figma với quyền sửa file.** Plugin chạy dưới danh
-nghĩa bạn. Nếu tài khoản bạn chỉ xem được file, plugin cũng chỉ xem được. Cái
-được miễn là **lớp MCP**, không phải quyền truy cập file.
+**Phải có quyền `can edit` trên file — `can view` là hết cửa.**
+
+Đây là giới hạn cứng nhất và dễ hiểu sai nhất, nên nói cho rõ: Figma **chỉ cho
+người có quyền `can edit` chạy plugin**, kể cả plugin thuần đọc không sửa gì.
+Với quyền `can view`, plugin không khởi động được — không phải "đọc được nhưng
+không ghi được", mà là *không có gì cả*. Cộng đồng xin cho phép plugin chỉ-đọc
+chạy ở chế độ view từ 2021 và Figma vẫn chưa làm.
+
+Cần tách hai khái niệm hay bị lẫn:
+
+| | Ai cấp | Hệ quả |
+|---|---|---|
+| **Quyền file** — `can view` / `can edit` | Người chia sẻ file | `can view` → không chạy được plugin |
+| **Seat** — View / Collab / Dev / Full | Admin workspace | Quyết định bạn *có thể* được cấp `can edit` hay không |
+
+Để chạy được cần `can edit`, tức trên thực tế là **Full seat**, hoặc **file
+nằm trong Drafts của chính bạn** — kể cả trên gói Starter miễn phí. **Dev seat
+là read-only ngoài drafts, nên cũng không chạy được plugin.** Cái được miễn phí
+là **lớp MCP**, không phải quyền truy cập file.
+
+Nếu chỉ có quyền view mà vẫn cần đọc, có ba đường và hai trong ba gần như vô dụng:
+
+1. **Duplicate to your drafts** — cách thực tế duy nhất. Bản copy là của bạn,
+   bạn `can edit`, plugin chạy bình thường. Hai điều kiện: chủ file không bật
+   *restrict copying*, và bản copy **tách rời** — sửa trên đó không quay về
+   file gốc.
+2. **REST API** — viewer có truy cập, nhưng seat View/Collab bị bóp còn khoảng
+   **20 lượt/tháng**. Không đủ cho việc gì thật.
+3. **Figma MCP remote** — cùng bậc hạn mức, khoảng **6 lượt/tháng** trên
+   Professional với seat View/Collab.
+
+Ở mức quyền view, Figma không cho tự động hoá gì đáng kể bằng bất kỳ cửa nào.
+Đó là chính sách sản phẩm, không phải chỗ để lách.
 
 **Gói Starter (free) có giới hạn riêng** về số file design và số page mỗi file.
 Giới hạn này thuộc về sản phẩm Figma, không phải lớp MCP, nên không cửa nào né
@@ -204,4 +234,8 @@ Figma MCP chính thức không cho ghi kiểu này dù bạn có trả bao nhiê
 - [Get started with the Figma MCP server — Figma Help Center](https://help.figma.com/hc/en-us/articles/39216419318551-Get-started-with-the-Figma-MCP-server)
 - [Guide to the Figma MCP server — Figma Help Center](https://help.figma.com/hc/en-us/articles/32132100833559-Guide-to-the-Figma-MCP-server)
 - [Plans & Pricing — Figma](https://www.figma.com/pricing/)
+- [REST API rate limits — Figma Developer Docs](https://developers.figma.com/docs/rest-api/rate-limits/)
+- [Can users with view-access only run plugins? — Figma Forum](https://forum.figma.com/t/can-users-with-view-access-only-run-plugins/25383)
+- [File and folder permissions — Figma Help Center](https://help.figma.com/hc/en-us/articles/35361119554711-File-and-folder-permissions)
+- [Restrict copying and sharing on files — Figma Help Center](https://help.figma.com/hc/en-us/articles/360040045574-Restrict-copying-and-sharing-on-files)
 - [figma/mcp-server-guide — GitHub](https://github.com/figma/mcp-server-guide)
