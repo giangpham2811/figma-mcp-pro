@@ -69,36 +69,88 @@ Ghi lại địa chỉ, dạng `https://figjam-pro-relay.<tên-bạn>.workers.de
 
 ### 4. Bật Cloudflare Access cho `/login`
 
-Đây là bước **xác minh email thật**, và là bước duy nhất không thể bỏ nếu
-bạn muốn giới hạn theo tên miền.
+Đây là bước **xác minh email thật**. Không có nó, `/login` trả 403 và không
+ai ghép cặp được — relay **fail closed**.
 
-Cloudflare dashboard → **Zero Trust → Access → Applications → Add an
-application → Self-hosted**:
+**Điều quan trọng nhất: chỉ bảo vệ path `/login`.** Access phủ cả Worker sẽ
+khoá luôn `/mcp` (Cowork gọi server-to-server, không có trình duyệt để đăng
+nhập) và `/ws` (plugin là iframe, không có phiên đăng nhập). Kết quả là mọi
+thứ ngừng chạy và lỗi không nói lý do.
 
-| Ô | Giá trị |
+#### 4a. Onboard Zero Trust (lần đầu, một lần duy nhất)
+
+Cloudflare dashboard → **Zero Trust** ở thanh bên. Lần đầu nó bắt chọn một
+**team name** (ví dụ `ikame`) — đó là tên miền đăng nhập của tổ chức bạn,
+dạng `ikame.cloudflareaccess.com`. Chọn gói **Free** (tới 50 người dùng).
+
+#### 4b. Thêm nhà cung cấp danh tính
+
+**Zero Trust → Settings → Authentication → Login methods → Add new**.
+
+- **Google Workspace** nếu công ty dùng Google — xác minh domain thật.
+- **Microsoft Entra ID** nếu dùng Microsoft 365.
+- **One-time PIN** không cần cấu hình gì: Cloudflare gửi mã 6 số tới email.
+  Kết hợp với policy domain bên dưới thì vẫn xác minh được người đó **đọc
+  được hộp thư** `@ikameglobal.com`. Đây là đường nhanh nhất để chạy thử.
+
+#### 4c. Tạo Access application chỉ cho `/login`
+
+Có hai lối vào cùng một chỗ. Lối đi từ Worker dễ hơn vì nó biết sẵn hostname
+`workers.dev`:
+
+**Workers & Pages → `figjam-pro-relay` → tab Access → Protect this Worker.**
+Chọn bảo vệ **một path cụ thể**, không phải toàn bộ Worker, rồi điền `login`.
+
+Nếu bản dashboard của bạn chưa có tab đó, đi đường cũ:
+
+**Zero Trust → Access controls → Applications → Create new application →
+Self-hosted:**
+
+| Ô | Điền |
 |---|---|
-| Application domain | `figjam-pro-relay.<tên-bạn>.workers.dev` |
-| Path | `login` |
-| Policy | Action **Allow**, rule **Emails ending in** `@congty.com` |
-| Identity provider | Google / Microsoft Entra / One-time PIN qua email |
+| Application name | `figjam-pro login` |
+| Domain / Public hostname | `figjam-pro-relay.giangpm.workers.dev` |
+| **Path** | `login` |
+| Session duration | 24 giờ là hợp lý |
 
-Zero Trust free tier: **50 người dùng**, đủ cho hầu hết nhóm.
+Rồi **Add a policy**:
 
-> **Chỉ bảo vệ đúng `/login`.** Nếu đặt Access lên `/mcp` thì Cowork bị khoá
-> ra ngoài — nó gọi server-to-server, không có trình duyệt để đăng nhập.
-> Nếu đặt lên `/ws` thì plugin bị khoá, vì iframe của plugin không có phiên
-> đăng nhập nào cả.
+| Ô | Điền |
+|---|---|
+| Policy name | `ikame staff` |
+| Action | **Allow** |
+| Include → selector | **Emails ending in** |
+| Value | `@ikameglobal.com` |
 
-Không có Cloudflare Access? Đặt secret `WORKSPACE_KEY` rồi phát chuỗi đó cho
-nhân viên:
+Chọn identity provider ở bước 4b, rồi **Save / Create**.
+
+#### 4d. Kiểm lại
+
+```bash
+curl -s "https://figjam-pro-relay.giangpm.workers.dev/login?code=TEST99"   -H "User-Agent: Mozilla/5.0" -i | head -5
+```
+
+- **302 tới `*.cloudflareaccess.com`** → đúng rồi. Access đang chặn.
+- **403 kèm "Nobody's identity was verified"** → Access chưa áp vào path
+  này. Kiểm lại path có đúng là `login` không (không có dấu `/` đầu, không
+  có `*`).
+
+Sau đó mở đúng URL đó trong trình duyệt: phải thấy màn đăng nhập, và sau khi
+đăng nhập bằng email `@ikameglobal.com` phải thấy trang *"Mã ghép cặp không
+tồn tại hoặc đã hết hạn"* — đó là **thành công**, vì `TEST99` là mã bịa.
+Nghĩa là Access đã cho qua và relay đã đọc được email của bạn.
+
+#### Không có Zero Trust? Dùng khoá chung
+
+Yếu hơn — một bí mật dùng chung, không danh tính, không vết kiểm toán — và
+relay nói thẳng điều đó:
 
 ```bash
 npx wrangler secret put WORKSPACE_KEY
 ```
 
-Yếu hơn — một bí mật dùng chung, không danh tính, không vết kiểm toán — và
-relay nói thẳng điều đó. Nếu **không có cái nào** được cấu hình, relay trả
-`503` chứ không chạy mở toang.
+Khi đã đặt, plugin nối bằng `?key=<chuỗi>` và bỏ qua ghép cặp. Nếu **không
+có cái nào** được cấu hình, relay trả `503` chứ không chạy mở toang.
 
 ### 5. Publish plugin
 

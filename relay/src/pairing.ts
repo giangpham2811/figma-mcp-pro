@@ -63,15 +63,34 @@ export function secret(bytes = 24): string {
 /**
  * The email Cloudflare Access vouched for, or null.
  *
- * `Cf-Access-Authenticated-User-Email` is set by Access AFTER it has
- * validated its own JWT, and Cloudflare strips any copy a client tried to
- * send. It is only trustworthy on a path Access actually protects — which
- * is why `requireAccess` below fails closed when the header is missing
- * rather than treating absence as "no policy configured".
+ * TWO sources, because Cloudflare grew a second one and the docs for each
+ * do not mention the other:
+ *
+ *  - `Cf-Access-Authenticated-User-Email`, set by a classic Access
+ *    application scoped to a hostname or path. Access sets it only after
+ *    validating its own JWT, and Cloudflare strips any copy a client tried
+ *    to send, so on a protected path it is trustworthy.
+ *  - `ctx.access`, added when Access became attachable to a Worker itself
+ *    (2026-08). A deployment configured that way gets no header.
+ *
+ * Reading only one means the relay works under one configuration and fails
+ * shut under the other, with a 403 that says "not protected by Access"
+ * while Access is demonstrably protecting it — which is about the most
+ * confusing possible way to be wrong.
+ *
+ * Either way absence means "nobody was verified", never "no policy
+ * configured": see requireAccess.
  */
-export function accessEmail(request: Request): string | null {
-  const email = request.headers.get("Cf-Access-Authenticated-User-Email");
-  return email && email.includes("@") ? email.toLowerCase() : null;
+export interface AccessCtx {
+  access?: { email?: unknown; identity?: { email?: unknown } };
+}
+
+export function accessEmail(request: Request, ctx?: AccessCtx): string | null {
+  const fromCtx = ctx?.access?.email ?? ctx?.access?.identity?.email;
+  const raw =
+    (typeof fromCtx === "string" && fromCtx) ||
+    request.headers.get("Cf-Access-Authenticated-User-Email");
+  return raw && raw.includes("@") ? raw.toLowerCase() : null;
 }
 
 export interface DomainCheck {
@@ -88,14 +107,18 @@ export interface DomainCheck {
  * say) is a one-character mistake that silently opens the door, and the
  * domain list lives here where it is reviewed in code.
  */
-export function requireAccess(request: Request, allowedDomains: string): DomainCheck {
-  const email = accessEmail(request);
+export function requireAccess(
+  request: Request,
+  allowedDomains: string,
+  ctx?: AccessCtx,
+): DomainCheck {
+  const email = accessEmail(request, ctx);
   if (!email) {
     return {
       ok: false,
       email: null,
       reason:
-        "This path is not protected by Cloudflare Access, so nobody's identity was verified. Add an Access application for /login before using pairing.",
+        "Nobody's identity was verified, so this path is not behind Cloudflare Access. Add an Access application scoped to the /login path (Workers & Pages → this Worker → Access → protect a path), then try again. Do NOT protect the whole Worker: that locks out /mcp, which Cowork calls with no browser, and /ws, which the plugin dials from an iframe.",
     };
   }
   const domains = allowedDomains

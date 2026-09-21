@@ -211,7 +211,7 @@ function buildServer(env: Env, roomId: string): McpServer {
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
 
@@ -248,7 +248,7 @@ export default {
     // --- pairing: the human, behind Cloudflare Access ---
     if (parts[0] === "login") {
       const code = (url.searchParams.get("code") ?? "").toUpperCase();
-      const check = requireAccess(request, env.ALLOWED_EMAIL_DOMAINS ?? "");
+      const check = requireAccess(request, env.ALLOWED_EMAIL_DOMAINS ?? "", ctx as never);
       if (!check.ok) {
         return new Response(check.reason ?? "not allowed", {
           status: 403,
