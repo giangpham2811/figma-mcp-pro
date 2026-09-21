@@ -36,6 +36,36 @@ Reqwise Figma MCP pairs a local MCP server with a companion Figma plugin. Point 
 
 It exists because the current generation of Figma MCPs make agents responsible for discipline they don't have: remembering never to overlay a semi-transparent frame, re-declaring token maps every call, manually computing x/y offsets, eyeballing screenshots to check for clipping. Reqwise moves that discipline into the server and plugin, and gives the agent a structured way to verify its own work.
 
+## Dùng trong Claude Code
+
+```bash
+npm install && npm run build
+node scripts/install-figjam.mjs      # hoặc: npm run install:figjam
+```
+
+Việc đó đăng ký MCP server ở **user scope** (chạy được từ mọi thư mục) và
+cài slash command `/figjam-pro` vào `~/.claude/commands/`. Khởi động lại
+Claude Code.
+
+Trong Figma Desktop: **Plugins → Development → Import plugin from
+manifest…** → chọn `plugin/manifest.json`. Chạy plugin và **giữ cửa sổ
+plugin mở** — đó là cây cầu.
+
+Rồi nói bằng tiếng Việt:
+
+```
+/figjam-pro vẽ luồng đăng nhập, có cả trường hợp sai mật khẩu
+/figjam-pro vẽ use case cho app này theo template trên board
+/figjam-pro vẽ journey của người dùng khi chờ mã OTP @docs/spec.md
+```
+
+Command tự chọn loại diagram, hỏi phần thiếu, **kiểm model trước khi vẽ**, và
+báo lại những gì checker tìm thấy. Chín skill `/figma-*` vẫn dùng được khi
+bạn đã biết mình cần loại nào.
+
+Server đăng ký dưới tên `reqwise-figma`, vì đó là tên chín skill gọi tới.
+Tên slash command độc lập với nó.
+
 ## Free vs Pro
 
 ![Free vs Pro at a glance — Free (MIT): bridge and multi-agent, read/draw canvas, layout_audit, tokens and styles, icons/images/prototypes, six BA diagrams and their Claude skills. Pro adds components and properties, design-system generation, use case, BPMN, journey and persona diagrams, UI section and block templates, a 1-to-1 code to Figma component map, accessibility and responsive audits, self-playing demos and video recording](docs/assets/free-vs-pro.png)

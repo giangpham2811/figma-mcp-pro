@@ -2,8 +2,10 @@
   "mcpServers": {
     "reqwise-figma": {
       "type": "stdio",
-      "command": "./scripts/reqwise-mcp.sh",
-      "args": []
+      "command": "node",
+      "args": [
+        "dist/server/index.js"
+      ]
     }
   }
 }

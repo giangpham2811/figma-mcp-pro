@@ -23,7 +23,8 @@
     "install:mcp": "node scripts/install-mcp-global.mjs",
     "prepare": "node scripts/build.mjs",
     "verify": "npm run typecheck && npm test",
-    "package": "node scripts/package.mjs"
+    "package": "node scripts/package.mjs",
+    "install:figjam": "node scripts/install-figjam.mjs"
   },
   "engines": {
     "node": ">=18"
