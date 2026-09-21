@@ -20,11 +20,14 @@
 > `a11y_audit`, `responsive_audit`, and self-playing demos (`build_demo`,
 > `play_demo`, …).
 >
-> **Not built yet:** three `figma_diagram` kinds — `usecase`, `journey`,
-> `persona` — and `loadAvatar`. `src/shared/editions.ts` is the live backlog;
-> calling one of them returns "not implemented yet" rather than an unknown-tool
-> error. The table below is upstream's own free/Pro comparison, kept for
-> reference — it describes upstream, not this fork.
+> **Built here:** the whole authoring surface upstream names as missing —
+> component authoring (18 ops), the design-system generator (10 visual styles
+> × 60 components, tokens, `apply`, `audit`), `a11y_audit`,
+> `responsive_audit`, self-playing demos, the `usecase`, `journey` and
+> `persona` diagram kinds, and `loadAvatar`. `src/shared/editions.ts` is the
+> live backlog and every list in it is now empty. The table below is
+> upstream's own free/Pro comparison, kept for reference — it describes
+> upstream, not this fork.
 >
 > Why an MCP over a Figma plugin bridge at all, when Figma ships an official
 > MCP server: **[docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md)**.

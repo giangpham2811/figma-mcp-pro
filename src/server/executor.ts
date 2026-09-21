@@ -47,6 +47,7 @@ import {
 import type { Session } from "./session.js";
 import { validateOperation, isReadOp } from "./validate.js";
 import { loadIconSvg, searchIcons as searchIconsSvc, type Fetcher, type IconLibrary } from "./icons.js";
+import { generateAvatar, AVATAR_STYLES } from "./avatars.js";
 import { runUserflow } from "./userflow.js";
 
 /**
@@ -938,6 +939,27 @@ function buildFigmaProxy(
       ...(opts.parentId !== undefined ? { parentId: opts.parentId } : {}),
     });
   };
+
+  // Avatars: generated server-side from the seed, then forwarded through the
+  // SAME load_icon op. Both are "here is some SVG, put it on the canvas", and
+  // a second plugin handler for that is a second place for the SVG-import
+  // bypass to go wrong.
+  proxy["loadAvatar"] = async (
+    seed: string,
+    opts: { style?: string; size?: number; parentId?: string; name?: string; [k: string]: unknown } = {},
+  ) => {
+    const { parentId, name, ...avatarOpts } = opts;
+    const made = generateAvatar(String(seed ?? ""), avatarOpts);
+    return call("load_icon", {
+      name: name ?? `avatar · ${made.seed}`,
+      canonical: `${made.style}:${made.seed}`,
+      library: "dicebear",
+      svg: made.svg,
+      size: made.size,
+      ...(parentId !== undefined ? { parentId } : {}),
+    });
+  };
+  proxy["avatarStyles"] = () => [...AVATAR_STYLES];
 
 
   // userflow: the graph is the AGENT's analysis of the spec (screens, happy

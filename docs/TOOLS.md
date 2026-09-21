@@ -332,6 +332,12 @@ These mirror the `figma_read` operations one-to-one, so you can read and write i
 await figma.overlay({ parentId: screen.id, color: "#000000", opacity: 0.5, insertAt: "top" });
 ```
 
+#### Avatars
+
+| Method | Signature | Notes |
+|---|---|---|
+| `loadAvatar` | `loadAvatar(seed, { style, size, parentId, backgroundColor, name })` | A generated avatar for a mockup, placed on the canvas. **Deterministic by seed**: the same name gives the same face on every redraw, so a screenshot taken today and a rebuild next week show the same person — random avatars make a design review about the avatars. `style` defaults to `initials` rather than a face, because a generated face reads as a specific person and pulls the review towards "who is this?". Twenty styles: people (`lorelei`, `notionists`, `avataaars`, `micah`, `openPeeps`, `personas`, `adventurer`, `bigSmile`, `miniavs`, `dylan`, `thumbs`) and abstract (`shapes`, `identicon`, `rings`, `glass`, `bottts`, `pixelArt`, `funEmoji`, `icons`) — `avatarStyles()` returns the list. Generated server-side and placed through the **same** `load_icon` op as an icon: both are "here is some SVG, put it on the canvas", and a second handler would be a second place for the SVG-import bypass to go wrong. |
+
 #### Component authoring
 
 A component is a contract every instance in the file has already signed, so
