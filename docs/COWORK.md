@@ -1,37 +1,36 @@
-# Dùng với Claude Cowork
+# Cowork — phần kỹ thuật
 
-Cowork chạy trên đám mây của Anthropic: nó **không** spawn được tiến trình
-trên máy bạn và **không** thấy `localhost` của bạn. Nên bản MCP chạy local
-là vô hình với nó.
+Dành cho người **dựng và vận hành**. Người dùng cuối chỉ cần
+[BAT-DAU.md](./BAT-DAU.md), ở đó không có dòng lệnh nào.
 
-Cách đi vòng không phải là hack — nó dùng đúng cánh cửa Cowork mở sẵn:
-**custom connector qua remote MCP**. Plugin Figma vốn đã là WebSocket
-*client*, tức nó **gọi ra ngoài**. Cho cả hai bên gọi vào cùng một địa chỉ
-công khai là chúng gặp nhau.
+## Vì sao phải có relay
+
+Cowork chạy trên máy chủ của Anthropic, không phải trên máy người dùng. Nó
+không mở được chương trình nào trên máy họ và không nhìn thấy máy họ. Nên
+bản chạy nội bộ là vô hình với nó.
+
+May là plugin Figma **gọi ra ngoài** chứ không chờ ai gọi vào. Vậy chỉ cần
+cho cả hai bên cùng gọi tới một địa chỉ công khai là chúng gặp nhau ở đó.
 
 ```
-Cowork ──Streamable HTTP──► Worker ──► Durable Object ◄──WebSocket── Plugin ──► Figma
+Cowork  ──►  relay (Cloudflare Worker)  ◄──  plugin  ──►  Figma
 ```
 
-Người dùng cuối chỉ thấy: mở plugin → bấm một nút → đăng nhập bằng email
-công ty → dán một đường dẫn vào Cowork. Xong.
+Với người dùng, toàn bộ chuyện này vô hình: họ mở plugin, chép một dòng,
+dán vào Cowork.
 
 ---
 
-## Dùng ngay — hai bước
+## Người dùng làm gì
 
-Relay đã chạy sẵn tại `https://figjam-pro-relay.giangpm.workers.dev`. Bạn
-không cần dựng gì.
+Ba bước, chi tiết ở [BAT-DAU.md](./BAT-DAU.md):
 
-1. **Trong Figma Desktop**: mở file bạn có quyền sửa → chạy plugin
-   **Reqwise Figma MCP**. Khối *Claude Cowork* hiện sẵn một đường dẫn. Bấm
-   **Chép**.
-2. **Trong Cowork**: Settings → Connectors → **Add custom connector** →
-   Name đặt gì cũng được (ví dụ `Figma`), **MCP server URL** dán đường dẫn
-   vừa chép.
+1. Mở Figma trên máy, chạy plugin, **để cửa sổ plugin mở**
+2. Chép đường dẫn plugin hiện sẵn
+3. Dán vào Cowork → Settings → Connectors → Add custom connector
 
-Xong. Từ đó về sau chỉ cần mở file, chạy plugin, **giữ cửa sổ plugin mở** —
-nó là cây cầu.
+Relay đã chạy tại `https://figjam-pro-relay.giangpm.workers.dev`. Không cần
+dựng gì nếu bạn dùng bản này.
 
 ### Đường dẫn đó chính là chìa khoá
 

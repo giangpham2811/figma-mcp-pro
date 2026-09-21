@@ -40,12 +40,15 @@ cửa sổ plugin mở** — nó là cây cầu.
 > file chỉ-xem, kể cả plugin thuần đọc. File người khác chia sẻ chỉ-xem:
 > *Duplicate to your drafts* rồi làm trên bản của bạn.
 
-### Hướng dẫn đầy đủ
+### Đọc gì tiếp
 
-- **[docs/HUONG-DAN.md](docs/HUONG-DAN.md)** — cài đặt, Claude Code, Claude Desktop, khắc phục sự cố
-- **[docs/COWORK.md](docs/COWORK.md)** — Cowork, relay, ba mức bảo mật
-- **[docs/TOOLS.md](docs/TOOLS.md)** — tham chiếu đầy đủ mọi tool và tham số
-- **[docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md)** — vì sao không dùng Figma MCP chính thức
+| Bạn là | Đọc |
+|---|---|
+| Chỉ muốn **dùng** | **[BAT-DAU.md](docs/BAT-DAU.md)** — không một dòng lệnh nào |
+| **Cài** cho cả nhóm | [HUONG-DAN.md](docs/HUONG-DAN.md) |
+| Dựng **relay** cho Cowork | [COWORK.md](docs/COWORK.md) |
+| Muốn tra **tham số** từng tool | [TOOLS.md](docs/TOOLS.md) |
+| Hỏi *vì sao không dùng Figma MCP chính thức* | [FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md) |
 
 ---
 
