@@ -454,7 +454,9 @@ export function buildTokens(
     ["info", info],
   ];
   for (const [name, ramp] of ramps) {
-    for (const step of Object.keys(ramp) as Array<keyof Ramp>) {
+    // RAMP_STEPS, not Object.keys: the key type is what makes ramp[step]
+    // check, and Object.keys on a numeric-keyed object hands back string[].
+    for (const step of RAMP_STEPS) {
       colors[`color/${name}/${step}`] = ramp[step];
     }
   }
