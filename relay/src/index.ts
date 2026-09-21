@@ -57,6 +57,8 @@ import {
   humanCode,
   secret,
   requireAccess,
+  presentedKey,
+  keyMatches,
   pairedPage,
   PAIR_TTL_MS,
   CODE_TTL_MS,
@@ -76,13 +78,29 @@ export interface Env {
    */
   ALLOWED_EMAIL_DOMAINS?: string;
   /**
-   * Fallback secret for teams without Cloudflare Access. When set, the
-   * plugin may open a room with `?key=` and skip pairing entirely.
+   * Shared secret that closes /mcp to everyone who has not been given it.
+   *
+   * Set it with `wrangler secret put WORKSPACE_KEY` — never in
+   * wrangler.jsonc, which is committed.
+   *
+   * Unset means an open relay, which is a defensible choice for a private
+   * deployment nobody has the hostname for, and an indefensible one for a
+   * host published in a public README. See the gate on /mcp below.
    */
   WORKSPACE_KEY?: string;
 }
 
 const ROOM_ID = /^[A-Za-z0-9_-]{6,64}$/;
+
+/**
+ * The room object that is not a room: one fixed-name instance used only to
+ * count pairing-code guesses. Fixed name means one instance worldwide,
+ * which is the whole point — see FigmaRoom's /guess handler.
+ *
+ * Not a room id a caller could ever reach: /pair/start mints 48-character
+ * hex, and ROOM_ID would accept this string, but nothing routes a URL here.
+ */
+const PAIR_GUARD = "pair-guard";
 
 function room(env: Env, id: string): DurableObjectStub {
   return env.FIGMA_ROOM.get(env.FIGMA_ROOM.idFromName(id));
@@ -143,7 +161,7 @@ function resolveRoom(pinned: string, passed?: string): string {
   return room;
 }
 
-function buildServer(env: Env, pinnedRoom: string): McpServer {
+function buildServer(env: Env, pinnedRoom: string, clientIp: string): McpServer {
   const server = new McpServer(
     { name: "figjam-pro", version: "0.3.0" },
     {
@@ -161,6 +179,29 @@ function buildServer(env: Env, pinnedRoom: string): McpServer {
     "Nối phiên này với cửa sổ Figma đang mở. Người dùng đọc mã 6 ký tự hiện trong plugin; gọi tool này với mã đó, rồi truyền `room` trả về vào MỌI lời gọi sau. Chỉ cần làm một lần cho mỗi cuộc trò chuyện.",
     { code: z.string().min(4).max(12) },
     async ({ code }) => {
+      // Guess-rate, not request-rate. The code is six characters from a
+      // 31-letter alphabet — about 887 million combinations — which sounds
+      // like plenty until you notice that nothing else here charges for a
+      // wrong guess. Grinding live codes is the only route to somebody
+      // else's canvas that does not also need the workspace key, so it is
+      // the one place worth counting attempts.
+      //
+      // Counted BEFORE the KV read, so a flood costs the attacker
+      // everything and this Worker nothing.
+      const verdict = (await (
+        await room(env, PAIR_GUARD).fetch(`https://room/guess?k=${encodeURIComponent(clientIp)}`)
+      ).json()) as { allowed: boolean; retryInSec: number };
+      if (!verdict.allowed) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Quá nhiều lần thử ghép cặp. Đợi ${verdict.retryInSec} giây rồi thử lại với mã đang hiện trong plugin.`,
+            },
+          ],
+          isError: true,
+        };
+      }
       const raw = await env.PAIRS.get(code.trim().toUpperCase());
       if (!raw) {
         return {
@@ -391,11 +432,19 @@ export default {
       // plugin at all (edit access to the file), so a room can only ever
       // reach a canvas its owner already had open.
       //
-      // WORKSPACE_KEY stays as opt-in for teams who want the relay itself
-      // closed to outsiders.
-      if (env.WORKSPACE_KEY && url.searchParams.get("key") !== env.WORKSPACE_KEY) {
-        return new Response("workspace key missing or wrong", { status: 403 });
-      }
+      // No WORKSPACE_KEY check on THIS path, deliberately, and it used to
+      // be here.
+      //
+      // It was unreachable protection: the plugin reads a `relay.key` that
+      // nothing in ui.html ever assigns, so turning the key on would have
+      // locked every plugin out of its own relay while looking like a
+      // config change. Worse, fixing it the other way — adding a key box to
+      // the plugin — buys nothing. This path already demands a 192-bit room
+      // id that only /pair/start mints, so a stranger cannot reach a room
+      // whether or not they also hold the key.
+      //
+      // The key belongs on /mcp, which is the side with a guessable
+      // credential (six characters) and therefore the side worth closing.
       return room(env, roomId).fetch(new Request("https://room/ws", request));
     }
 
@@ -414,6 +463,20 @@ export default {
       // The shared form exists because "copy this long string out of Figma
       // and into Cowork" is a step people get wrong, and because an admin
       // can push one URL to everybody in advance.
+      // The gate. Everything above is public because it has to be; this is
+      // not, because anyone who reaches it can start guessing pairing codes.
+      //
+      // Unset WORKSPACE_KEY leaves the relay open, and /health says so out
+      // loud rather than letting an operator assume otherwise.
+      if (env.WORKSPACE_KEY && !(await keyMatches(presentedKey(request, url), env.WORKSPACE_KEY))) {
+        return Response.json(
+          {
+            error:
+              "Missing or wrong workspace key. Send it as `Authorization: Bearer <key>`, as `X-Workspace-Key: <key>`, or — in Claude Cowork, whose connector dialog has no header field — append `?key=<key>` to the MCP server URL. Ask whoever set this relay up for the key; it is not in the repository.",
+          },
+          { status: 401 },
+        );
+      }
       const roomId = parts[1] ?? "";
       if (roomId && !ROOM_ID.test(roomId)) {
         return Response.json(
@@ -425,7 +488,7 @@ export default {
       // any colo, and a session pinned to one isolate would break the
       // moment it did — the room holds the only state that matters.
       const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-      const server = buildServer(env, roomId);
+      const server = buildServer(env, roomId, request.headers.get("CF-Connecting-IP") ?? "unknown");
       await server.connect(transport);
       return transport.handleRequest(request);
     }
@@ -441,6 +504,11 @@ export default {
           : env.WORKSPACE_KEY
             ? "workspace-key"
             : "open (the room id in the URL is the credential)",
+        // Which guards are actually live. Both are configuration that can
+        // silently not be there — a secret nobody ran `secret put` for, a
+        // binding that did not survive an edit to wrangler.jsonc — and a
+        // missing guard looks exactly like a present one from outside.
+        guards: { workspaceKey: !!env.WORKSPACE_KEY, pairGuess: "durable-object" },
       });
     }
 

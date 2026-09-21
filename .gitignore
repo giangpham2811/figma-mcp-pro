@@ -6,3 +6,9 @@ dist/
 coverage/
 *.zip
 .codex/
+
+# Cloudflare. .dev.vars holds the local copy of WORKSPACE_KEY, and .wrangler
+# caches deploy state — neither belongs in a repo that may go public.
+.dev.vars
+.dev.vars.*
+.wrangler/

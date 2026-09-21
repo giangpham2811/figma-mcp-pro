@@ -19,6 +19,15 @@
     }
   ],
   "kv_namespaces": [{ "binding": "PAIRS", "id": "cff04318a327476b876017298a9e2a16" }],
+  // No "ratelimits" binding here, and it was tried. Measured against the
+  // deployed Worker it blocked 14 calls made inside ONE request but let all
+  // 14 through when they were 14 separate requests, because it counts per
+  // edge machine. Pairing-code guesses arrive as separate requests, so the
+  // counter now lives in the FigmaRoom durable object under the fixed name
+  // "pair-guard" — see relay/src/room.ts.
+  // WORKSPACE_KEY is a SECRET, not a var — `wrangler secret put
+  // WORKSPACE_KEY`. It must never appear in this file, which is committed.
+  //
   // No ALLOWED_EMAIL_DOMAINS by default: setting it turns on the
   // Cloudflare Access pairing flow, which is worth it for a locked-down
   // team and is too many steps for everyone else. The room id in the URL

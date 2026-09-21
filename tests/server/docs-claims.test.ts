@@ -204,7 +204,7 @@ describe("the shipped docs", () => {
   it("gives the same relay host in the README, the operator doc and the plugin", () => {
     // README is the copy-paste source, so it defines the answer; the other
     // two have to agree with it.
-    const readme = /```\nhttps:\/\/([a-z0-9.-]+)\/mcp\n```/.exec(read("README.md"));
+    const readme = /```\nhttps:\/\/([a-z0-9.-]+)\/mcp\?key=([^\n]*)\n```/.exec(read("README.md"));
     expect(readme, "README no longer shows a relay URL in a copyable block").not.toBeNull();
     const host = readme![1]!;
 
@@ -222,5 +222,40 @@ describe("the shipped docs", () => {
     // wrangler deploys under.
     const deployed = JSON.parse(read("relay/wrangler.jsonc").replace(/^\s*\/\/.*$/gm, "")) as { name: string };
     expect(host.split(".")[0], "the docs point at a Worker this repo does not deploy").toBe(deployed.name);
+  });
+  /**
+   * The workspace key must never be committed, and this is where that gets
+   * enforced rather than remembered.
+   *
+   * The repository is private today and may not stay that way, and git
+   * keeps what it was given: a key pushed once stays readable in the
+   * history after the file is "fixed". So the rule cannot be "delete it if
+   * someone notices" — it has to fail before the commit.
+   *
+   * The realistic mistake is not malice, it is convenience: somebody gets
+   * tired of telling colleagues the key and pastes their working URL into
+   * the install page. That is the exact shape this looks for.
+   */
+  it("keeps the workspace key out of every file that gets committed", () => {
+    const PLACEHOLDER = "KHOA-CONG-TY";
+    for (const rel of ["README.md", "docs/COWORK.md", "docs/HUONG-DAN.md", "relay/wrangler.jsonc"]) {
+      const body = read(rel);
+      // The backtick matters: the troubleshooting table writes `?key=…` as
+      // prose, and without excluding it the captured "value" is an ellipsis
+      // plus a stray backtick, which fails as a leaked key. A guard that
+      // cries wolf on its own documentation gets switched off within a week.
+      for (const m of body.matchAll(/[?&]key=([^\s`"'&)<>]+)/g)) {
+        const value = m[1]!;
+        expect(
+          value === PLACEHOLDER || value.startsWith("KHOA") || value === "…" || value.startsWith("<"),
+          `${rel} looks like it carries a real key (key=${value.slice(0, 8)}…). The key is a Cloudflare ` +
+            `secret — set it with "wrangler secret put WORKSPACE_KEY" — and the docs write ${PLACEHOLDER}.`,
+        ).toBe(true);
+      }
+      expect(
+        /WORKSPACE_KEY\s*[:=]\s*["'][^"']+["']/.test(body),
+        `${rel} assigns WORKSPACE_KEY a literal value; that belongs in a wrangler secret, not in the repo`,
+      ).toBe(false);
+    }
   });
 });

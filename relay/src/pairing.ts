@@ -147,6 +147,58 @@ export function requireAccess(
   return { ok: true, email };
 }
 
+/**
+ * The workspace key, wherever the client was able to put it.
+ *
+ * Three places because the clients genuinely differ, not for symmetry:
+ *
+ *  - `Authorization: Bearer …` — Claude Code, curl, any normal HTTP client.
+ *  - `X-Workspace-Key: …` — same thing, for clients that reserve
+ *    Authorization for their own OAuth.
+ *  - `?key=…` — the ONLY shape Claude Cowork can carry. Its "Add custom
+ *    connector" dialog has exactly two fields, Name and URL, and no way to
+ *    attach a header. A key that can only travel in a header would lock out
+ *    the client this relay exists to serve.
+ *
+ * A secret in a query string is worse than one in a header: it lands in
+ * referrers, proxy logs and browser history. None of those apply here — the
+ * relay is called server-to-server by Cowork, logs no URLs of its own, and
+ * the alternative is no key at all. Prefer a header when you can.
+ */
+export function presentedKey(request: Request, url: URL): string | null {
+  const auth = request.headers.get("Authorization");
+  const bearer = auth ? /^Bearer\s+(.+)$/i.exec(auth) : null;
+  const raw = bearer?.[1] ?? request.headers.get("X-Workspace-Key") ?? url.searchParams.get("key") ?? "";
+  return raw.trim() || null;
+}
+
+/**
+ * Constant-time comparison of what the caller sent against the real key.
+ *
+ * Hashed first for two reasons. It equalises length, so a wrong-length
+ * guess costs the same as a wrong-value one and the key's length does not
+ * leak. And it means the loop below always runs over exactly 32 bytes,
+ * with no early exit — the whole point of comparing this way.
+ *
+ * The loop is hand-written rather than `crypto.subtle.timingSafeEqual`
+ * because that one is a Workers extension: it does not exist in Node, so
+ * using it would put the repo's only access check somewhere the test suite
+ * cannot reach. Four lines is a cheap price for a test.
+ */
+export async function keyMatches(presented: string | null, expected: string): Promise<boolean> {
+  if (!presented) return false;
+  const enc = new TextEncoder();
+  const [a, b] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(presented)),
+    crypto.subtle.digest("SHA-256", enc.encode(expected)),
+  ]);
+  const x = new Uint8Array(a);
+  const y = new Uint8Array(b);
+  let diff = 0;
+  for (let i = 0; i < x.length; i++) diff |= x[i]! ^ y[i]!;
+  return diff === 0;
+}
+
 /** The page the human lands on after Access lets them through. */
 export function pairedPage(opts: { email: string; mcpUrl: string; code: string }): string {
   const esc = (s: string): string =>

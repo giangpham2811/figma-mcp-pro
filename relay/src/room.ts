@@ -42,6 +42,11 @@ export class FigmaRoom {
   /** In-flight requests, by id. Lost on eviction — the timeout covers it. */
   private pending = new Map<string, Pending>();
   private seq = 0;
+  /**
+   * Failed pairing guesses, by caller, for the one instance of this class
+   * that is addressed as "pair-guard" rather than as a room. See /guess.
+   */
+  private guesses = new Map<string, { n: number; until: number }>();
 
   constructor(state: DurableObjectState) {
     this.state = state;
@@ -49,6 +54,40 @@ export class FigmaRoom {
 
   async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
+
+    /**
+     * Count a pairing-code guess. Answers whether the caller may make it.
+     *
+     * This lives in the room class, addressed under the fixed name
+     * "pair-guard", because a Durable Object with a fixed name is the only
+     * thing in this relay that counts reliably. The obvious alternative,
+     * the Workers rate-limiting binding, was tried first and measured: it
+     * does block, but only within a single request — fourteen calls in one
+     * invocation get cut off at the twelfth, while fourteen separate HTTP
+     * requests all sail through, because that binding counts locally per
+     * edge machine. A guard that a real attacker's traffic pattern walks
+     * straight past is worse than none, since it reads as protection.
+     *
+     * Kept in memory, not storage. An evicted object forgets, and that is
+     * acceptable: eviction follows inactivity, and an attacker who has
+     * stopped for long enough to trigger it has stopped attacking. Storage
+     * writes on every guess would be the expensive way to buy nothing.
+     */
+    if (url.pathname.endsWith("/guess")) {
+      const who = url.searchParams.get("k") ?? "unknown";
+      const limit = Number(url.searchParams.get("limit") ?? "10");
+      const windowMs = Number(url.searchParams.get("window") ?? "60000");
+      const now = Date.now();
+      const seen = this.guesses.get(who);
+      const slot = !seen || seen.until <= now ? { n: 0, until: now + windowMs } : seen;
+      slot.n += 1;
+      this.guesses.set(who, slot);
+      // Bound the map so a spray of forged IPs cannot grow it without end.
+      if (this.guesses.size > 5000) {
+        for (const [k, v] of this.guesses) if (v.until <= now) this.guesses.delete(k);
+      }
+      return Response.json({ allowed: slot.n <= limit, retryInSec: Math.ceil((slot.until - now) / 1000) });
+    }
 
     // --- the plugin dialling in ---
     if (url.pathname.endsWith("/ws")) {
