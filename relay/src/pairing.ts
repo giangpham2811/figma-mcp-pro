@@ -13,7 +13,7 @@
  *
  * The verification itself is NOT written here, deliberately. Cloudflare
  * Access sits in front of `/login`, handles Google / Microsoft / email OTP,
- * enforces "email ends with @yourcompany.com" as a policy you edit in a UI,
+ * enforces "email ends with @ikameglobal.com" as a policy you edit in a UI,
  * and passes the result down as a signed header. Hand-rolling an OAuth
  * dance would be several hundred lines of security-critical code to
  * reimplement something free and audited.
@@ -129,7 +129,7 @@ export function requireAccess(
 
   const at = email.lastIndexOf("@");
   const domain = email.slice(at + 1);
-  // Exact match only. A suffix test would let `evil-yourcompany.com`
+  // Exact match only. A suffix test would let `evil-ikameglobal.com`
   // through, which is the classic way this check is written wrong.
   if (!domains.includes(domain)) {
     return { ok: false, email, reason: `${email} is not on an allowed domain (${domains.join(", ")}).` };

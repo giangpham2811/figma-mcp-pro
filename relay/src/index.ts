@@ -63,7 +63,7 @@ export interface Env {
   PAIRS: KVNamespace;
   /**
    * Comma-separated email domains allowed to pair, e.g.
-   * "yourcompany.com,partner.com". Empty means any address Access let
+   * "ikameglobal.com,partner.com". Empty means any address Access let
    * through, which is only safe if the Access policy is already narrow.
    */
   ALLOWED_EMAIL_DOMAINS?: string;

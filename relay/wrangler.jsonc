@@ -26,6 +26,6 @@
   //
   // To require verified company email instead, set it here (and add the
   // Access application over the /login path — see docs/COWORK.md §4):
-  //   "vars": { "ALLOWED_EMAIL_DOMAINS": "congty.com" },
+  //   "vars": { "ALLOWED_EMAIL_DOMAINS": "ikameglobal.com" },
   "observability": { "enabled": true }
 }

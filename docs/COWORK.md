@@ -121,11 +121,11 @@ chọn này được nhớ lại cho lần sau.
 **3a.** Trong `relay/wrangler.jsonc`:
 
 ```jsonc
-"vars": { "ALLOWED_EMAIL_DOMAINS": "congty.com" }
+"vars": { "ALLOWED_EMAIL_DOMAINS": "ikameglobal.com" }
 ```
 
 Nhiều domain ngăn bằng dấu phẩy. So khớp **chính xác**, không phải hậu tố,
-nên `evil-congty.com` không lọt. Deploy lại.
+nên `evil-ikameglobal.com` không lọt. Deploy lại.
 
 **3b.** Cloudflare dashboard → **Zero Trust**. Lần đầu phải chọn một *team
 name* và gói **Free** (tới 50 người dùng).
@@ -139,7 +139,7 @@ ty. Dùng Google Workspace hoặc Microsoft Entra ID nếu có.
 Worker** → chọn bảo vệ **một path**, điền `login`. Nếu bản dashboard chưa có
 tab đó: **Zero Trust → Access controls → Applications → Create new →
 Self-hosted**, Domain là hostname Worker, **Path** là `login`, policy
-*Allow* + *Emails ending in* `@congty.com`.
+*Allow* + *Emails ending in* `@ikameglobal.com`.
 
 > **Chỉ path `/login`, đừng bảo vệ cả Worker.** Access phủ toàn Worker sẽ
 > khoá `/mcp` (Cowork gọi server-to-server, không có trình duyệt) và `/ws`
