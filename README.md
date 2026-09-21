@@ -4,8 +4,30 @@
 
 **An MCP server that lets AI agents read and draw on the Figma canvas — safely.** Open source (MIT).
 
-> **Need BPMN, UI templates, a 1-to-1 code ↔ Figma component map, design systems, journey maps, personas, accessibility and responsive audits, or self-playing demos?**
-> They are in **[Reqwise Figma MCP Pro →](https://ai4ba.com/figma-mcp)**. Compare the two editions [below](#free-vs-pro).
+> ### This is a fork
+>
+> Upstream is **[reqwise-figma-mcp](https://github.com/hoangpm96/reqwise-figma-mcp)** by Hoang Phan, MIT
+> licensed — the bridge, the plugin, the six BA diagrams and the whole safe-drawing
+> layer are theirs. See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
+>
+> Upstream ships the authoring half as a separate commercial product. This fork
+> reimplements it against Figma's public Plugin API, from the published feature
+> list. No upstream commercial source was used, and none was available.
+>
+> **Built here so far:** component authoring (18 ops — find, instantiate,
+> variants, component properties, instance overrides), the design-system
+> generator (10 visual styles × 60 components, tokens, `apply`, `audit`),
+> `a11y_audit`, `responsive_audit`, and self-playing demos (`build_demo`,
+> `play_demo`, …).
+>
+> **Not built yet:** three `figma_diagram` kinds — `usecase`, `journey`,
+> `persona` — and `loadAvatar`. `src/shared/editions.ts` is the live backlog;
+> calling one of them returns "not implemented yet" rather than an unknown-tool
+> error. The table below is upstream's own free/Pro comparison, kept for
+> reference — it describes upstream, not this fork.
+>
+> Why an MCP over a Figma plugin bridge at all, when Figma ships an official
+> MCP server: **[docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md)**.
 
 Reqwise Figma MCP pairs a local MCP server with a companion Figma plugin. Point Claude Code, Cursor, Codex or any MCP-capable agent at it, and the agent can inspect a Figma file and draw into it by executing JavaScript against a `figma.*` proxy API — with the plugin layer catching the mistakes that usually turn "AI draws a screen" into "AI draws an overflowing, half-clipped mess." It also draws the BA diagrams a spec needs — userflow, activity, sequence, ERD, sitemap, state machine — and proof-reads the model behind each one.
 
