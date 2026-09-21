@@ -135,12 +135,12 @@ vì 12 lần gọi tool với 12 khối JSON.
 
 | | Figma MCP chính thức | Plugin-bridge (dự án này) |
 |---|---|---|
-| Chi phí | $12–16/seat/tháng (Dev/Full) | $0 cho lớp API |
+| Chi phí | $12–16/seat/tháng (Dev/Full) | $0 cho lớp API — nhưng vẫn cần quyền edit file |
 | Hạn mức | 200–600 lượt/ngày, 10–20/phút | Không có |
 | Ghi lên canvas | Chỉ Full seat, phạm vi hẹp | Đầy đủ Plugin API |
 | Token mỗi lần đọc | Cả cây React+Tailwind | Đã nén, lọc, chỉ phần liên quan |
 | Nhiều thao tác | 1 thao tác = 1 lượt | `batch` 200 thao tác = 1 lượt |
-| Cần gì để chạy | Tài khoản trả phí | Figma Desktop mở + cài plugin |
+| Cần gì để chạy | Seat Dev/Full trả phí | Figma Desktop mở + cài plugin + **quyền `can edit` trên file** (xem mục 5) |
 | Đọc file không mở | Được (bản remote) | **Không** |
 | Code Connect chính thức | Có | Không (phải tự làm) |
 | Ai bảo trì | Figma | Bạn |
