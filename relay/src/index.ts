@@ -215,12 +215,24 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
 
-    // --- pairing: the plugin asks for a code ---
+    // --- the plugin asks for a room ---
+    //
+    // Answers immediately with a usable room. When ALLOWED_EMAIL_DOMAINS is
+    // set the answer ALSO carries a pairing code, and the plugin then waits
+    // for a human to clear Access before using the room — but the default
+    // deployment skips that entirely, because two fields in a dialog is the
+    // whole budget most users have.
     if (parts[0] === "pair" && parts[1] === "start" && request.method === "POST") {
+      const roomId = secret();
+      const gated = !!env.ALLOWED_EMAIL_DOMAINS;
+      if (!gated) {
+        return Response.json({ verified: false, roomId, mcpUrl: `${url.origin}/mcp/${roomId}` });
+      }
       const code = humanCode();
-      const pair: Pair = { roomId: secret(), code, createdAt: Date.now() };
+      const pair: Pair = { roomId, code, createdAt: Date.now() };
       await env.PAIRS.put(code, JSON.stringify(pair), { expirationTtl: PAIR_TTL_MS / 1000 });
       return Response.json({
+        verified: true,
         code,
         loginUrl: `${url.origin}/login?code=${code}`,
         expiresInSec: PAIR_TTL_MS / 1000,
@@ -276,21 +288,25 @@ export default {
     if (parts[0] === "ws") {
       const roomId = parts[1] ?? "";
       if (!ROOM_ID.test(roomId)) return new Response("bad room id", { status: 400 });
-      // Two ways in, and the room id alone is not one of them. Either the
-      // plugin paired (a human proved their email through Access, and the
-      // room id it got back is unguessable), or the deployment configured a
-      // shared WORKSPACE_KEY for teams without Access. With neither
-      // configured the relay is open, so it says so rather than pretending.
-      const key = url.searchParams.get("key");
-      if (env.WORKSPACE_KEY) {
-        if (key !== env.WORKSPACE_KEY) {
-          return new Response("workspace key missing or wrong", { status: 403 });
-        }
-      } else if (!env.ALLOWED_EMAIL_DOMAINS) {
-        return new Response(
-          "This relay has neither ALLOWED_EMAIL_DOMAINS (with Cloudflare Access) nor WORKSPACE_KEY set, so it would accept anyone. Configure one before use.",
-          { status: 503 },
-        );
+      // The room id IS the credential, and that is the whole security model
+      // by default.
+      //
+      // 192 bits of randomness in the path, exactly like a Figma share link
+      // or a Google Docs link: holding the URL is the permission. The
+      // earlier design demanded Cloudflare Access before anything worked,
+      // and that was the wrong call — Cowork's connector dialog has two
+      // fields, Name and URL, so every step that happens outside those two
+      // fields is a step most people will not complete. A tool nobody
+      // finishes setting up protects nothing.
+      //
+      // What this does NOT weaken: Figma still decides who may run the
+      // plugin at all (edit access to the file), so a room can only ever
+      // reach a canvas its owner already had open.
+      //
+      // WORKSPACE_KEY stays as opt-in for teams who want the relay itself
+      // closed to outsiders.
+      if (env.WORKSPACE_KEY && url.searchParams.get("key") !== env.WORKSPACE_KEY) {
+        return new Response("workspace key missing or wrong", { status: 403 });
       }
       return room(env, roomId).fetch(new Request("https://room/ws", request));
     }
@@ -314,7 +330,17 @@ export default {
     }
 
     if (parts[0] === "health") {
-      return Response.json({ ok: true, service: "figjam-pro relay" });
+      return Response.json({
+        ok: true,
+        service: "figjam-pro relay",
+        // Say which mode this deployment is in, so "why did it not ask me
+        // to log in?" has an answer that does not require reading the code.
+        mode: env.ALLOWED_EMAIL_DOMAINS
+          ? "verified-email"
+          : env.WORKSPACE_KEY
+            ? "workspace-key"
+            : "open (the room id in the URL is the credential)",
+      });
     }
 
     return new Response(

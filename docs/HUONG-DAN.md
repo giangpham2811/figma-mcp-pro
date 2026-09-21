@@ -117,8 +117,8 @@ Khởi động lại Claude Desktop. Đường dẫn phải **tuyệt đối**.
 
 Cowork chạy trên đám mây nên không thấy `localhost` của bạn. Cách nối là
 một **relay trên Cloudflare Workers**: plugin gọi ra, Cowork gọi vào, hai
-bên gặp nhau ở đó. Có xác minh email công ty thật qua Cloudflare Access, và
-nằm trong free tier.
+bên gặp nhau ở đó. Relay đã dựng sẵn, nên với người dùng chỉ còn **hai
+bước**: chép đường dẫn trong plugin, dán vào ô *Add custom connector*.
 
 **[→ docs/COWORK.md](./COWORK.md)** có đủ các bước.
 

@@ -253,16 +253,27 @@
   <div class="cowork" id="cowork">
     <div class="cowork-body" id="coworkBody">
       <p class="cowork-hint" id="coworkHint">
-        Cowork chạy trên đám mây nên không thấy máy bạn. Ghép cặp một lần để nối qua relay.
+        Dán đường dẫn này vào Cowork → Settings → Connectors → Add custom connector.
       </p>
-      <label class="cowork-field">
-        <span>Relay</span>
-        <input id="relayHost" type="text" spellcheck="false" placeholder="https://ten-relay.workers.dev">
-      </label>
-      <div class="actions">
-        <button id="pairStart" class="primary">Ghép cặp với Cowork</button>
-        <button id="pairForget" class="danger" hidden>Ngắt</button>
+      <div class="cowork-url">
+        <input id="mcpUrlTop" type="text" readonly spellcheck="false" placeholder="Đang lấy đường dẫn…">
+        <button id="copyUrlTop" class="primary">Chép</button>
       </div>
+      <details class="cowork-adv">
+        <summary>Cài đặt nâng cao</summary>
+        <label class="cowork-field">
+          <span>Relay</span>
+          <input id="relayHost" type="text" spellcheck="false" placeholder="https://ten-relay.workers.dev">
+        </label>
+        <div class="actions">
+          <button id="pairStart">Lấy đường dẫn mới</button>
+          <button id="pairForget" class="danger" hidden>Ngắt</button>
+        </div>
+        <p class="cowork-hint">
+          Đường dẫn chính là chìa khoá: ai có nó thì vẽ được lên file Figma bạn đang mở.
+          Lấy đường dẫn mới sẽ vô hiệu hoá đường dẫn cũ.
+        </p>
+      </details>
     </div>
 
     <div class="cowork-pairing" id="coworkPairing" hidden>
@@ -318,6 +329,9 @@
     letter-spacing: 6px; text-align: center; padding: 12px 0 14px;
   }
   .cowork button.danger { color: #c0392b; }
+  .cowork-adv { margin-top: 12px; }
+  .cowork-adv summary { font-size: 11px; opacity: .7; cursor: pointer; min-height: 28px; line-height: 28px; }
+  .cowork-adv[open] summary { margin-bottom: 8px; }
 </style>
 <script>
 (function () {
@@ -367,6 +381,10 @@
   // clientStorage before the first dial, so we never open a doomed
   // localhost socket first and make a working relay look broken.
   var relay = null;            // { host, roomId, key?, email? }
+  // Pre-filled so a fresh install has something to dial. A team running
+  // its own relay overwrites it once under Advanced and the choice sticks
+  // in clientStorage — but nobody should have to type a URL to get started.
+  var DEFAULT_RELAY = "https://figjam-pro-relay.giangpm.workers.dev";
   var pairing = null;          // { code, loginUrl, timer, deadline }
   var PAIR_POLL_MS = 2000;
 
@@ -430,6 +448,8 @@
     pairedEmail: document.getElementById("pairedEmail"),
     mcpUrl: document.getElementById("mcpUrl"),
     copyUrl: document.getElementById("copyUrl"),
+    mcpUrlTop: document.getElementById("mcpUrlTop"),
+    copyUrlTop: document.getElementById("copyUrlTop"),
     activityEmpty: document.getElementById("activity-empty"),
     statWrites: document.getElementById("stat-writes"),
     statReads: document.getElementById("stat-reads"),
@@ -650,7 +670,16 @@
         handshake = { pluginVersion: msg.pluginVersion, protocolVersion: msg.protocolVersion };
         // Arrives before the first dial on purpose — see main.ts.
         if (msg.relay && msg.relay.host && msg.relay.roomId) relay = msg.relay;
+        if (!el.relayHost.value) el.relayHost.value = relay ? relay.host : DEFAULT_RELAY;
         renderCowork();
+        // No room yet? Get one now, quietly. The panel should be useful the
+        // moment it opens: the connector dialog in Cowork has two fields,
+        // and anything that makes the user hunt for the URL first is a step
+        // most people will not take.
+        //
+        // Silent on failure — somebody on the local Claude Code path never
+        // asked for Cowork and should not be shown a relay error.
+        if (!relay) requestRoom(true);
         break;
       case "hello":
         hello = msg.hello;
@@ -873,8 +902,12 @@
     if (paired) {
       el.relayHost.value = relay.host;
       el.mcpUrl.value = mcpUrl();
+      el.mcpUrlTop.value = mcpUrl();
       el.pairedEmail.textContent = relay.email ? " (" + relay.email + ")" : "";
     }
+    // The top field is the whole feature; it should never be the thing the
+    // user has to go looking for.
+    el.coworkBody.hidden = !!pairing;
     if (pairing) el.pairCode.textContent = pairing.code;
   }
 
@@ -926,10 +959,16 @@
       });
   }
 
-  el.pairStart.onclick = function () {
-    var host = relayOrigin(el.relayHost.value);
+  /**
+   * Ask the relay for a room.
+   *
+   * `silent` is the on-open call: it must not shout at somebody who never
+   * asked for Cowork. It only speaks up when the user pressed the button.
+   */
+  function requestRoom(silent) {
+    var host = relayOrigin(el.relayHost.value) || relayOrigin(DEFAULT_RELAY);
     if (!host) {
-      el.coworkHint.textContent = "Địa chỉ relay không hợp lệ. Ví dụ: https://ten-relay.workers.dev";
+      if (!silent) el.coworkHint.textContent = "Địa chỉ relay không hợp lệ. Ví dụ: https://ten-relay.workers.dev";
       return;
     }
     el.pairStart.disabled = true;
@@ -939,6 +978,19 @@
         return r.json();
       })
       .then(function (body) {
+        // Open relay: the room is usable the moment it is issued, so the
+        // URL goes on screen and there is nothing else to do.
+        if (!body.verified) {
+          relay = { host: host, roomId: body.roomId, email: "" };
+          toMain({ kind: "save-relay", relay: relay });
+          renderCowork();
+          backoff = BACKOFF_MIN;
+          if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+          clearTimeout(reconnectTimer); reconnectTimer = null;
+          connect();
+          return;
+        }
+        // Verified-email relay: a human has to clear Access first.
         pairing = {
           code: body.code,
           loginUrl: body.loginUrl,
@@ -950,11 +1002,15 @@
         pollPair(host, body.code);
       })
       .catch(function (e) {
-        el.coworkHint.textContent =
-          "Không gọi được relay (" + e.message + "). Kiểm tra địa chỉ, và kiểm tra domain đã nằm trong networkAccess của manifest chưa.";
+        if (!silent) {
+          el.coworkHint.textContent =
+            "Không gọi được relay (" + e.message + "). Kiểm tra địa chỉ, và kiểm tra domain đã nằm trong networkAccess của manifest chưa.";
+        }
       })
       .then(function () { el.pairStart.disabled = false; });
-  };
+  }
+
+  el.pairStart.onclick = function () { requestRoom(false); };
 
   el.pairOpen.onclick = function () {
     if (!pairing) return;
@@ -977,6 +1033,15 @@
     clearTimeout(reconnectTimer); reconnectTimer = null;
     connect();
   };
+
+  function copyFrom(input, button) {
+    input.select();
+    var done = function () { button.textContent = "Đã chép"; };
+    if (navigator.clipboard) navigator.clipboard.writeText(input.value).then(done, done);
+    else { try { document.execCommand("copy"); done(); } catch (e) {} }
+  }
+
+  el.copyUrlTop.onclick = function () { copyFrom(el.mcpUrlTop, el.copyUrlTop); };
 
   el.copyUrl.onclick = function () {
     el.mcpUrl.select();

@@ -18,170 +18,148 @@ công ty → dán một đường dẫn vào Cowork. Xong.
 
 ---
 
-## Relay đã deploy sẵn
+## Dùng ngay — hai bước
 
-```
-https://figjam-pro-relay.giangpm.workers.dev
-```
+Relay đã chạy sẵn tại `https://figjam-pro-relay.giangpm.workers.dev`. Bạn
+không cần dựng gì.
 
-Đã dựng trên tài khoản `giangpm@ikameglobal.com`, `ALLOWED_EMAIL_DOMAINS`
-đặt là `ikameglobal.com`. Đã kiểm bằng cách gọi thật: `initialize`,
-`tools/list`, và một `figma_diagram` `dryRun` chạy trọn checker.
+1. **Trong Figma Desktop**: mở file bạn có quyền sửa → chạy plugin
+   **Reqwise Figma MCP**. Khối *Claude Cowork* hiện sẵn một đường dẫn. Bấm
+   **Chép**.
+2. **Trong Cowork**: Settings → Connectors → **Add custom connector** →
+   Name đặt gì cũng được (ví dụ `Figma`), **MCP server URL** dán đường dẫn
+   vừa chép.
 
-**Còn một bước bắt buộc trước khi dùng được: bật Cloudflare Access cho
-`/login`** (mục 4 bên dưới). Cho tới lúc đó `/login` trả 403 kèm đúng lý
-do — nó **fail closed**, không phải fail open, nên chưa ai ghép cặp được và
-cũng không ai lọt qua.
+Xong. Từ đó về sau chỉ cần mở file, chạy plugin, **giữ cửa sổ plugin mở** —
+nó là cây cầu.
 
-Nếu bạn dựng bản của riêng mình thì làm theo các bước dưới đây.
+### Đường dẫn đó chính là chìa khoá
+
+Không có đăng nhập, và đó là chủ ý. Ô *Add custom connector* của Cowork chỉ
+có hai trường — Name và URL — nên mọi bước nằm ngoài hai trường đó là bước
+phần lớn người dùng sẽ không làm.
+
+Bảo mật nằm trong chính URL: room id là **192 bit ngẫu nhiên**, không đoán
+được. Cùng mô hình với link chia sẻ Figma hay Google Docs — **ai cầm được
+link thì có quyền**.
+
+Hai điều đi kèm, cần biết rõ:
+
+- **Ai có URL thì vẽ được lên file Figma bạn đang mở.** Đừng dán nó vào
+  chat nhóm hay commit vào repo.
+- **Figma vẫn là lớp chặn thật.** Plugin chỉ chạy được trên file bạn có
+  quyền **sửa**, nên một room không bao giờ với tới canvas mà chủ nhân của
+  nó chưa mở sẵn.
+
+Muốn thu hồi? Plugin → *Cài đặt nâng cao* → **Lấy đường dẫn mới**. Đường dẫn
+cũ chết ngay, và bạn dán đường dẫn mới vào Cowork.
 
 ---
 
-## Phần dành cho người dựng (làm một lần)
+## Muốn chặt hơn (tuỳ chọn)
 
-### 1. Tạo KV namespace
+Chỉ làm nếu bạn thực sự cần. Cả hai cách đều thêm bước cho người dùng cuối.
+
+### Cách A — khoá chung
+
+Một chuỗi bí mật, phát cho nhân viên, nhập một lần trong plugin:
+
+```bash
+cd relay && npx wrangler secret put WORKSPACE_KEY
+```
+
+Người không có khoá không mở được room trên relay của bạn. Không có danh
+tính, không có vết kiểm toán — nhưng chỉ tốn một lần dán.
+
+### Cách B — xác minh email công ty
+
+Đặt `ALLOWED_EMAIL_DOMAINS` trong `relay/wrangler.jsonc`, deploy lại, rồi
+thêm Cloudflare Access **chỉ cho path `/login`**. Khi đó plugin sẽ hiện mã
+6 ký tự và bắt người dùng đăng nhập trước khi cấp đường dẫn.
+
+Chặt nhất, và cũng nhiều bước nhất — cả cho admin lẫn người dùng. Các bước
+chi tiết ở phần *Dựng relay riêng* bên dưới.
+
+`GET /health` cho biết relay đang ở chế độ nào:
+
+```bash
+curl https://figjam-pro-relay.giangpm.workers.dev/health
+# {"mode":"open (the room id in the URL is the credential)"}
+```
+
+---
+
+## Dựng relay riêng (nếu không muốn dùng relay sẵn)
+
+### 1. KV namespace
 
 ```bash
 cd relay
 npx wrangler kv namespace create PAIRS
 ```
 
-Chép `id` nó in ra vào `relay/wrangler.jsonc`, thay `REPLACE_WITH_YOUR_KV_ID`.
+Chép `id` vào `relay/wrangler.jsonc`.
 
-### 2. Khai domain công ty
-
-Trong `relay/wrangler.jsonc`:
-
-```jsonc
-"vars": { "ALLOWED_EMAIL_DOMAINS": "congty.com" }
-```
-
-Nhiều domain thì ngăn bằng dấu phẩy. So khớp **chính xác**, không phải hậu
-tố — nên `evil-congty.com` không lọt.
-
-### 3. Deploy
+### 2. Deploy
 
 ```bash
 npx wrangler deploy
 ```
 
-Ghi lại địa chỉ, dạng `https://figjam-pro-relay.<tên-bạn>.workers.dev`.
+Ghi lại địa chỉ. Nếu **không** ở `*.workers.dev`, thêm domain đó vào
+`networkAccess.allowedDomains` trong `plugin/manifest.json` — Figma chặn mọi
+domain không khai báo.
 
-### 4. Bật Cloudflare Access cho `/login`
+### 3. Trỏ plugin sang relay của bạn
 
-Đây là bước **xác minh email thật**. Không có nó, `/login` trả 403 và không
-ai ghép cặp được — relay **fail closed**.
+Plugin → *Cài đặt nâng cao* → điền địa chỉ → **Lấy đường dẫn mới**. Lựa
+chọn này được nhớ lại cho lần sau.
 
-**Điều quan trọng nhất: chỉ bảo vệ path `/login`.** Access phủ cả Worker sẽ
-khoá luôn `/mcp` (Cowork gọi server-to-server, không có trình duyệt để đăng
-nhập) và `/ws` (plugin là iframe, không có phiên đăng nhập). Kết quả là mọi
-thứ ngừng chạy và lỗi không nói lý do.
+<details>
+<summary>Bật xác minh email công ty (cách B ở trên)</summary>
 
-#### 4a. Onboard Zero Trust (lần đầu, một lần duy nhất)
+**3a.** Trong `relay/wrangler.jsonc`:
 
-Cloudflare dashboard → **Zero Trust** ở thanh bên. Lần đầu nó bắt chọn một
-**team name** (ví dụ `ikame`) — đó là tên miền đăng nhập của tổ chức bạn,
-dạng `ikame.cloudflareaccess.com`. Chọn gói **Free** (tới 50 người dùng).
-
-#### 4b. Thêm nhà cung cấp danh tính
-
-**Zero Trust → Settings → Authentication → Login methods → Add new**.
-
-- **Google Workspace** nếu công ty dùng Google — xác minh domain thật.
-- **Microsoft Entra ID** nếu dùng Microsoft 365.
-- **One-time PIN** không cần cấu hình gì: Cloudflare gửi mã 6 số tới email.
-  Kết hợp với policy domain bên dưới thì vẫn xác minh được người đó **đọc
-  được hộp thư** `@ikameglobal.com`. Đây là đường nhanh nhất để chạy thử.
-
-#### 4c. Tạo Access application chỉ cho `/login`
-
-Có hai lối vào cùng một chỗ. Lối đi từ Worker dễ hơn vì nó biết sẵn hostname
-`workers.dev`:
-
-**Workers & Pages → `figjam-pro-relay` → tab Access → Protect this Worker.**
-Chọn bảo vệ **một path cụ thể**, không phải toàn bộ Worker, rồi điền `login`.
-
-Nếu bản dashboard của bạn chưa có tab đó, đi đường cũ:
-
-**Zero Trust → Access controls → Applications → Create new application →
-Self-hosted:**
-
-| Ô | Điền |
-|---|---|
-| Application name | `figjam-pro login` |
-| Domain / Public hostname | `figjam-pro-relay.giangpm.workers.dev` |
-| **Path** | `login` |
-| Session duration | 24 giờ là hợp lý |
-
-Rồi **Add a policy**:
-
-| Ô | Điền |
-|---|---|
-| Policy name | `ikame staff` |
-| Action | **Allow** |
-| Include → selector | **Emails ending in** |
-| Value | `@ikameglobal.com` |
-
-Chọn identity provider ở bước 4b, rồi **Save / Create**.
-
-#### 4d. Kiểm lại
-
-```bash
-curl -s "https://figjam-pro-relay.giangpm.workers.dev/login?code=TEST99"   -H "User-Agent: Mozilla/5.0" -i | head -5
+```jsonc
+"vars": { "ALLOWED_EMAIL_DOMAINS": "congty.com" }
 ```
 
-- **302 tới `*.cloudflareaccess.com`** → đúng rồi. Access đang chặn.
-- **403 kèm "Nobody's identity was verified"** → Access chưa áp vào path
-  này. Kiểm lại path có đúng là `login` không (không có dấu `/` đầu, không
-  có `*`).
+Nhiều domain ngăn bằng dấu phẩy. So khớp **chính xác**, không phải hậu tố,
+nên `evil-congty.com` không lọt. Deploy lại.
 
-Sau đó mở đúng URL đó trong trình duyệt: phải thấy màn đăng nhập, và sau khi
-đăng nhập bằng email `@ikameglobal.com` phải thấy trang *"Mã ghép cặp không
-tồn tại hoặc đã hết hạn"* — đó là **thành công**, vì `TEST99` là mã bịa.
-Nghĩa là Access đã cho qua và relay đã đọc được email của bạn.
+**3b.** Cloudflare dashboard → **Zero Trust**. Lần đầu phải chọn một *team
+name* và gói **Free** (tới 50 người dùng).
 
-#### Không có Zero Trust? Dùng khoá chung
+**3c.** **Settings → Authentication → Login methods → Add new**. Nhanh nhất
+là **One-time PIN** — không cần cấu hình gì, Cloudflare gửi mã tới email, và
+kết hợp với policy domain thì vẫn chứng minh người đó đọc được hộp thư công
+ty. Dùng Google Workspace hoặc Microsoft Entra ID nếu có.
 
-Yếu hơn — một bí mật dùng chung, không danh tính, không vết kiểm toán — và
-relay nói thẳng điều đó:
+**3d.** **Workers & Pages → `figjam-pro-relay` → tab Access → Protect this
+Worker** → chọn bảo vệ **một path**, điền `login`. Nếu bản dashboard chưa có
+tab đó: **Zero Trust → Access controls → Applications → Create new →
+Self-hosted**, Domain là hostname Worker, **Path** là `login`, policy
+*Allow* + *Emails ending in* `@congty.com`.
+
+> **Chỉ path `/login`, đừng bảo vệ cả Worker.** Access phủ toàn Worker sẽ
+> khoá `/mcp` (Cowork gọi server-to-server, không có trình duyệt) và `/ws`
+> (plugin là iframe, không có phiên đăng nhập). Mọi thứ ngừng chạy và lỗi
+> không nói lý do.
+
+**3e.** Kiểm:
 
 ```bash
-npx wrangler secret put WORKSPACE_KEY
+curl -s "https://<host>/login?code=TEST99" -H "User-Agent: Mozilla/5.0" -i | head -5
 ```
 
-Khi đã đặt, plugin nối bằng `?key=<chuỗi>` và bỏ qua ghép cặp. Nếu **không
-có cái nào** được cấu hình, relay trả `503` chứ không chạy mở toang.
+**302 tới `*.cloudflareaccess.com`** là đúng. **403 "Nobody's identity was
+verified"** nghĩa là Access chưa áp vào path đó.
 
-### 5. Publish plugin
+Mở URL đó trong trình duyệt, đăng nhập, và thấy *"Mã ghép cặp không tồn tại
+hoặc đã hết hạn"* — đó là **thành công**, vì `TEST99` là mã bịa: Access đã
+cho qua và relay đã đọc được email bạn.
 
-Với người non-tech, đây mới là rào cản thật, không phải relay. Chừng nào
-còn phải *Import plugin from manifest* thì họ còn phải tải repo về máy.
-
-- **Có gói Organization**: publish private cho tổ chức. Không qua review,
-  không lộ ra ngoài.
-- **Không có**: publish công khai lên Figma Community. Qua review vài ngày,
-  ai cũng cài được — nhưng relay của bạn vẫn chỉ nhận email đúng domain,
-  nên người lạ cài plugin cũng không dùng được hạ tầng của bạn.
-
-Nếu relay của bạn **không** ở `*.workers.dev`, sửa `networkAccess.allowedDomains`
-trong `plugin/manifest.json` trước khi publish — Figma chặn mọi domain không
-khai báo.
-
----
-
-## Phần dành cho người dùng (mỗi máy một lần)
-
-1. Mở file trong **Figma Desktop** (file bạn **có quyền sửa**).
-2. Chạy plugin **Reqwise Figma MCP**.
-3. Trong khối **Claude Cowork**: dán địa chỉ relay, bấm **Ghép cặp với Cowork**.
-4. Bấm **Mở trang đăng nhập** → đăng nhập bằng email công ty → đóng tab.
-5. Quay lại plugin: nó tự nối trong vài giây và hiện một đường dẫn.
-6. Chép đường dẫn đó → Cowork → **Settings → Connectors → Add custom
-   connector** → dán vào ô URL.
-
-Từ đó về sau chỉ cần: mở file, chạy plugin, **giữ cửa sổ plugin mở**.
-
-Mã ghép cặp sống **10 phút** và dùng **một lần**. Quá hạn thì bấm lại.
+</details>
 
 ---
 

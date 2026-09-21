@@ -19,10 +19,13 @@
     }
   ],
   "kv_namespaces": [{ "binding": "PAIRS", "id": "cff04318a327476b876017298a9e2a16" }],
-  "vars": {
-    // Comma-separated. Empty means "trust whatever Access allowed", which
-    // is only safe if the Access policy is already narrow.
-    "ALLOWED_EMAIL_DOMAINS": "ikameglobal.com"
-  },
+  // No ALLOWED_EMAIL_DOMAINS by default: setting it turns on the
+  // Cloudflare Access pairing flow, which is worth it for a locked-down
+  // team and is too many steps for everyone else. The room id in the URL
+  // is the credential in the default mode — see relay/src/index.ts.
+  //
+  // To require verified company email instead, set it here (and add the
+  // Access application over the /login path — see docs/COWORK.md §4):
+  //   "vars": { "ALLOWED_EMAIL_DOMAINS": "congty.com" },
   "observability": { "enabled": true }
 }
