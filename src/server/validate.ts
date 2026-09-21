@@ -521,6 +521,19 @@ const OP_SCHEMAS: Partial<Record<Operation, z.ZodTypeAny>> = {
   detach_instance: z.object({ nodeId }).passthrough(),
   reset_instance_overrides: z.object({ nodeId }).passthrough(),
   match_main_values: z.object({ nodeId }).passthrough(),
+
+  generate_design_system: z
+    .object({
+      style: z.string().trim().min(1).optional(),
+      hue: z.number().min(0).max(360).optional(),
+      chroma: z.number().min(0).max(100).optional(),
+      modes: z.boolean().optional(),
+      page: z.string().trim().min(1).optional(),
+      components: z.array(z.string().trim().min(1)).optional(),
+    })
+    .passthrough(),
+  apply_design_system: z.object({ nodeId: nodeId.optional() }).passthrough(),
+  audit_design_system: params,
 };
 
 export interface ValidatedOp {

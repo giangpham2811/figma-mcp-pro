@@ -50,6 +50,8 @@ export const READ_OPERATIONS = [
   // The override diff of one instance, in a shape set_instance_overrides
   // accepts back — so "make these twelve look like that one" is two calls.
   "get_instance_overrides",
+  // Is what is in this file actually a system, or sixty unrelated frames?
+  "audit_design_system",
 ] as const;
 
 /** Write operations executed by the plugin. */
@@ -118,6 +120,10 @@ export const WRITE_OPERATIONS = [
   "detach_instance",
   "reset_instance_overrides",
   "match_main_values",
+  // Design system generation. generate builds tokens + styles + the catalog;
+  // apply re-themes existing work onto those tokens.
+  "generate_design_system",
+  "apply_design_system",
 ] as const;
 
 export type ReadOperation = (typeof READ_OPERATIONS)[number];
@@ -322,6 +328,12 @@ export const OP_TIMEOUTS: Partial<Record<Operation, number>> = {
   create_variants: 60_000,
   // Deleting a property rewrites every instance that carried it.
   delete_component_property: 60_000,
+  // Sixty components, each a subtree build. Progress pings reset this, but
+  // the first one only lands after the first component, so the floor has to
+  // clear a cold start with fonts still loading.
+  generate_design_system: 300_000,
+  apply_design_system: 120_000,
+  audit_design_system: 120_000,
 };
 
 /** Batch requests are split into chunks of this size and streamed. */

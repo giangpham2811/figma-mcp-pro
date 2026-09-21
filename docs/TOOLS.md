@@ -106,6 +106,7 @@ Returns rich diagnostics — never a bare boolean:
 | `get_components` | — (optional `detail`, `depth`, `includeAnatomy`) | Local components / component sets. Default keeps a compact `id/name/type/key` shape; `detail:"design"` includes properties, variants and text layers. Add `includeAnatomy:true` for bounded subtree anatomy. |
 | `get_component` | `componentId` or `nodeId` or `key` | Rich single-component read: component property definitions, variants, text layers, slots, usage hints and anatomy by default. |
 | `get_library_component` | `key` | Import a component from a **published shared library** by key and read it richly — the serialization doubles as a reconstruction spec. The import races an internal timeout, with a hint pointing at library publish/permission issues. |
+| `audit_design_system` | — | **Is this a system, or sixty unrelated frames?** Four questions Figma cannot answer from inside: components nobody instantiates, near-duplicate names (`Button`, `Button Copy`, `button 2`), solid colours that never became tokens (ranked by how often they appear), and text that fails contrast against its nearest filled ancestor. Text with no filled ancestor is skipped rather than assumed to be on white — a guess there manufactures findings that are not real. |
 | `find_component` | `query` (optional `limit`) | **Ask before you build a second one.** Fuzzy-ranks every local component against a name and returns the candidates with a score and a match reason (`exact`/`prefix`/`contains`/`token-overlap`), plus `exact: true` when one is a real name match. Variants are reached through their set, not listed individually. |
 | `get_instance_overrides` | `nodeId` (an INSTANCE) | The portable diff of one instance: `componentProperties`, `layerOverrides` (text and visibility, read off the layers), `exposedInstanceIds`. Feed it straight back to `set_instance_overrides` as `source`. Overridden fields this tool cannot copy (fills, effects, size) are named under `uncarried` instead of being dropped silently. |
 | `get_design_system_kit` | — (same evidence/depth limits as `generate_design_md`) | Structured JSON source: file/pages, rich styles/variables, local and external components, usage, screen summaries, observed patterns and extraction coverage. |
@@ -345,6 +346,40 @@ guess. There is no undo on the agent's side of the wire.
 | `addComponentProperty` | `addComponentProperty(nodeId, name, type, defaultValue, { preferredValues })` | `type` is `BOOLEAN`/`TEXT`/`INSTANCE_SWAP`/`VARIANT`. Routing is automatic: VARIANT properties live on the SET, the rest on a COMPONENT, and calling the wrong one throws a Figma error that names neither fact. Returns the `#1:2`-suffixed **key**, which is what `setProperties` needs and what nobody can guess. |
 | `editComponentProperty` | `editComponentProperty(nodeId, name, { newName, defaultValue, preferredValues })` | Renaming **mints a new key**; the result carries both `previousKey` and `key` so a caller holding the old one finds out now rather than three calls later. |
 | `deleteComponentProperty` | `deleteComponentProperty(nodeId, name)` | Every instance loses the value it had for that property. Warns accordingly. |
+
+#### Design system generation
+
+| Method | Signature | Notes |
+|---|---|---|
+| `generateDesignSystem` | `generateDesignSystem({ style, hue, chroma, modes, page, components })` | Variables + text styles + effect styles + up to sixty components, on their own page. `style` is one of the ten recipes (see below); `hue` (0–360) rotates the brand ramp and everything derived from it. **Idempotent**: a second run REBUILDS each component in place, keeping its id, so instances a designer has already placed keep working — a COMPONENT cannot be deleted through the Plugin API anyway, so a generator that does not do this leaves `Button` and `Button 2` behind. `components: ["Forms/Input", "Feedback"]` regenerates a subset by name or group. One failing blueprint is reported by name and does not cost the other fifty-nine. Contrast is re-checked against the tokens actually written and reported in `contrastFindings`. |
+| `applyDesignSystem` | `applyDesignSystem({ nodeId })` | Re-theme existing work: binds variables to every solid fill and stroke whose value **exactly** matches a token. It does not snap near-matches — a fill one shade off a token is a decision somebody made. The result's `unmatchedColors` is the interesting half: a re-theme that binds 40 fills and leaves 300 literals is not a re-theme, and a bare success count hides that. |
+| `auditDesignSystem` | `auditDesignSystem()` | See the read op above. |
+
+**The ten styles.** They differ in geometry, surface strategy, stroke weight,
+type family and density — not in hue. Ten hues on one skeleton is one system
+photographed ten times.
+
+| `style` | What it looks like |
+|---|---|
+| `neutral` | Swiss. Borders define surfaces, no shadow, tight radii. The safe default. |
+| `soft` | Generous radii, diffuse shadows, no borders. |
+| `brutalist` | Zero radius, 2px borders, hard offset shadows with no blur, uppercase labels. |
+| `glass` | Translucent surfaces, blur, hairline light borders. Dark-first. |
+| `editorial` | Serif display, hairline rules, a lot of air. |
+| `corporate` | Tight density, small radii, subtle elevation. Data-heavy screens. |
+| `playful` | Pill shapes, saturated colour, coloured shadows. |
+| `dark` | Designed dark, light mode derived. Luminous borders instead of shadows. |
+| `highContrast` | 2px borders, 3px focus ring, AAA-leaning text. Nothing relies on colour alone. |
+| `neumorphic` | Extruded surfaces, paired light/dark shadows. Low contrast by nature — the audit will say so. |
+
+**Contrast is measured, not assumed.** Every action surface and its label are
+chosen as a PAIR: the generator walks a preference order of ramp steps and
+takes the first whose best label clears 4.5:1. Orange 600 is 3.3:1 against
+white and comfortable against black, so it keeps its step and flips the
+label; violet cannot use black at all, so its surface moves instead. Secondary
+text and control borders are picked the same way. The sweep over 10 styles ×
+12 hues × 2 modes is in `tests/shared/design-system-tokens.test.ts` and has no
+exemptions.
 
 #### Instances
 

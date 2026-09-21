@@ -91,6 +91,11 @@ import {
   resetInstanceOverrides,
   matchMainValues,
 } from "./instance-overrides.js";
+import {
+  generateDesignSystem,
+  applyDesignSystem,
+  auditDesignSystem,
+} from "./design-system-gen.js";
 
 export type Handler = (ctx: HandlerContext) => Promise<unknown>;
 
@@ -216,6 +221,10 @@ export const HANDLERS: Record<Operation, Handler> = {
   detach_instance: detachInstance,
   reset_instance_overrides: resetInstanceOverrides,
   match_main_values: matchMainValues,
+  // design system generation
+  generate_design_system: whileDrawing(generateDesignSystem),
+  apply_design_system: applyDesignSystem,
+  audit_design_system: auditDesignSystem,
 };
 
 /** Compile-time-ish safety net: every declared op has a handler. */

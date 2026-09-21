@@ -174,6 +174,9 @@ const METHOD_TO_OP: Record<string, AnyOperation> = {
   detachInstance: "detach_instance",
   resetInstanceOverrides: "reset_instance_overrides",
   matchMainValues: "match_main_values",
+  generateDesignSystem: "generate_design_system",
+  applyDesignSystem: "apply_design_system",
+  auditDesignSystem: "audit_design_system",
 };
 
 /**

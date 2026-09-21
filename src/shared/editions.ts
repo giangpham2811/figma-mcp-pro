@@ -28,16 +28,13 @@ export const PRO_DIAGRAM_KINDS = ["journey", "persona", "usecase"] as const;
 
 /** Plugin operations (figma_read ops and figma.* write methods) that exist only in Pro. */
 export const PRO_OPERATIONS = [
-  "audit_design_system",
   "a11y_audit",
   "responsive_audit",
   "list_demos",
   "get_demo_spec",
-  "apply_design_system",
   "create_usecase",
   "create_journey",
   "create_persona",
-  "generate_design_system",
   "build_demo",
   "delete_demo",
   "play_demo",
@@ -45,7 +42,6 @@ export const PRO_OPERATIONS = [
 
 /** figma.* sandbox methods that exist only in Pro (camelCase names agents call). */
 export const PRO_METHODS = [
-  "applyDesignSystem",
   "buildDemo",
   "playDemo",
   "deleteDemo",
