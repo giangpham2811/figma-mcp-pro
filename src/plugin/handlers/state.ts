@@ -17,6 +17,9 @@ import { ErrorCode } from "../../shared/protocol.js";
 import { STATE_MARKER } from "../diagram-mark.js";
 import type { DrawState, StateDraw } from "../../shared/state/types.js";
 import type { DrawEdge } from "../../shared/diagram/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
+import { boxesToFigJam, edgesToFigJam } from "../figjam/adapt.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -57,6 +60,22 @@ export async function createState(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       `create_state got malformed draw data (${e instanceof Error ? e.message : String(e)}) — nothing was changed.`,
       'Call it through the figma_diagram tool with type:"state" — the server computes the layout.',
+    );
+  }
+
+
+  // entry/do/exit live in a second compartment under a rule on Design,
+  // which is what makes a reader see "state" rather than "step". A board
+  // has no compartments, so they become indented lines in the same shape —
+  // less emphatic, still present, still readable.
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      boxesToFigJam(d.states as never, { prefix: "state" }),
+      edgesToFigJam(d.edges),
+      font,
+      d.intoFrameId,
     );
   }
 

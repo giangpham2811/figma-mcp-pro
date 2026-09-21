@@ -15,6 +15,9 @@ import { ErrorCode } from "../../shared/protocol.js";
 import { ACTIVITY_MARKER } from "../diagram-mark.js";
 import type { ActivityDraw, DrawLane, DrawStep } from "../../shared/activity/types.js";
 import type { DrawEdge } from "../../shared/diagram/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
+import { boxesToFigJam, edgesToFigJam } from "../figjam/adapt.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -56,6 +59,39 @@ export async function createActivity(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       `create_activity got malformed draw data (${e instanceof Error ? e.message : String(e)}) — nothing was changed.`,
       'Call it through the figma_diagram tool with type:"activity" — the server computes the layout.',
+    );
+  }
+
+
+  // Swimlanes have no equivalent on a board: a lane is a band drawn behind
+  // the steps, and FigJam has no way to say "this shape belongs to that
+  // band". So the lane becomes part of the step's own text instead of a
+  // stripe — the OWNER survives, the geometry does not.
+  if (isFigJam()) {
+    // A step does not carry its lane id — the lane is expressed by WHERE the
+    // layout put it. So the owner is read back off the geometry, which is
+    // the only place it exists.
+    const laneAt = (b: { at: { x: number; y: number } }): string | null => {
+      for (const l of d.lanes ?? []) {
+        const inside =
+          b.at.x >= l.at.x && b.at.x < l.at.x + l.at.w && b.at.y >= l.at.y && b.at.y < l.at.y + l.at.h;
+        if (inside) return l.label;
+      }
+      return null;
+    };
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      boxesToFigJam(d.steps as never, {
+        prefix: "step",
+        extra: (b) => {
+          const lane = laneAt(b as { at: { x: number; y: number } });
+          return lane ? [`— ${lane}`] : [];
+        },
+      }),
+      edgesToFigJam(d.edges),
+      font,
+      d.intoFrameId,
     );
   }
 

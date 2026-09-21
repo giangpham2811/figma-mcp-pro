@@ -20,6 +20,8 @@ import { err } from "../errors.js";
 import { ErrorCode } from "../../shared/protocol.js";
 import { PERSONA_MARKER } from "../diagram-mark.js";
 import type { DrawPersona, PersonaDraw } from "../../shared/persona/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -36,6 +38,35 @@ export async function createPersona(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       "create_persona expects laid-out draw data (personas).",
       'Call it through the figma_diagram tool with type:"persona" — the server measures the cards.',
+    );
+  }
+
+  // A board has no auto-layout, so the five sections of a card cannot be
+  // stacked as frames. They become the shape's own text instead, in the same
+  // order the card uses — which loses the typographic hierarchy and keeps
+  // every word. The quote goes on a sticky beside it, because on a board a
+  // sticky IS the "somebody said this" convention.
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      d.personas.map((p) => ({
+        id: p.id,
+        name: p.name,
+        at: p.at,
+        lines: [
+          `${p.displayName}${p.title ? ` — ${p.title}` : ""}`,
+          `[${p.roleLabel}]`,
+          ...p.sections.flatMap((s) => [``, s.label, ...s.items.map((i) => i.join(" "))]),
+        ],
+        shape: "SQUARE" as const,
+        fill: p.fill,
+        stroke: p.accent,
+        ...(p.quote.length ? { note: p.quote } : {}),
+      })),
+      [],
+      font,
+      d.intoFrameId,
     );
   }
 

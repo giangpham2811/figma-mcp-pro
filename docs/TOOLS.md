@@ -442,6 +442,56 @@ Auto-layout sizing: setting `layoutMode: "VERTICAL" | "HORIZONTAL"` turns a fram
 
 ---
 
+## Running on FigJam
+
+The plugin declares `editorType: ["figma", "figjam"]`, so it runs on a board
+as well as in a Design file. A board is **not** a degraded Design file, and
+the support is shaped around that.
+
+**What FigJam has that Design does not**, and why it is worth supporting at
+all: `ConnectorNode`. A connector binds to a NODE by id with `magnet:"AUTO"`
+and Figma re-routes it when the node moves. Every line of
+`shared/<kind>/route.ts`, `diagram-reflow.ts`, the `reflow_diagram` op and the
+live `nodechange` watcher exists because Design has **no** connector and
+something has to move the arrows when a box is dragged. None of it runs on a
+board — the FigJam renderer discards `edge.points` entirely and reads only
+which two nodes an edge joins. The board renderer is therefore *smaller* than
+the Design one.
+
+**What it draws with**: a `SECTION` for the frame (a board's own grouping,
+and for a use case diagram it doubles as the system boundary), a
+`SHAPE_WITH_TEXT` per box keeping the flowchart vocabulary (`DIAMOND` for a
+decision, `ELLIPSE` for start/end and for a use case, `ENG_DATABASE` for an
+ERD entity, `PARALLELOGRAM_RIGHT` for something external), a `CONNECTOR` per
+edge, and a `STICKY` for anything that is a note — a persona's quote, a
+sitemap page's detail.
+
+| Kind | On FigJam |
+|---|---|
+| `userflow` `activity` `state` `sitemap` `usecase` | Full. Native connectors, so dragging a box re-routes its lines. |
+| `erd` | Entities as cylinders; the column list, PK/FK badges included, becomes text inside the shape. |
+| `persona` `journey` | Drawn, with the grid folded into each card: FigJam has no auto-layout, so a persona's five sections and a journey's lanes become lines in the shape. A journey stage leads with an emoji face so the low point is still scannable across the row. |
+| `sequence` | **Refused, with the reason.** Its vertical axis is TIME, and a connector binds to a node rather than to a point on a lifeline — every message between the same two participants would collapse onto one line and the ordering, which is the entire content, would be gone. It would still *look* like a sequence diagram. Use a Design file, or `type:"activity"` if what you need is who does what rather than in what order. |
+
+**What is refused, and why the reason matters.** Components, variants,
+instances, variables, shared styles and prototype reactions do not exist in
+FigJam, so `instantiate`, `generate_design_system`, `setup_tokens`,
+`build_demo` and their neighbours return `UNSUPPORTED_OPERATION` naming the
+missing capability. The audits (`a11y_audit`, `responsive_audit`,
+`layout_audit`) are refused on a different ground: they would happily compute
+on a sticky note, and a board is not a shipped interface, so every finding
+would be noise about a whiteboard. The gate lives in the handler registry, so
+it covers the op path, the `batch` loop and the direct message path together
+— a guard remembered in three places is a guard that gets missed in one.
+
+**What is lost**: multi-compartment boxes. A state's entry/do/exit block, an
+ERD's row stack and a persona's section hierarchy are auto-layout
+constructs. Here they are lines of text. That is a real loss of density and a
+real gain in editability — everything on a board stays draggable, and the
+connectors follow.
+
+---
+
 ## `figma_diagram`
 
 **Seven** diagram kinds behind one tool with a `type`, because every tool description is paid for in tokens in every session and the shapes differ far more than the call does. `figma_userflow` was a separate tool up to 0.1.0; it is `type: "userflow"` here, with the same fields.

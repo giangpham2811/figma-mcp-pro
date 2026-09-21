@@ -24,6 +24,9 @@ import { ErrorCode } from "../../shared/protocol.js";
 import { SITEMAP_MARKER } from "../diagram-mark.js";
 import type { DrawPage, SitemapDraw } from "../../shared/sitemap/types.js";
 import type { DrawEdge } from "../../shared/diagram/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
+import { boxesToFigJam, edgesToFigJam } from "../figjam/adapt.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -40,6 +43,21 @@ export async function createSitemap(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       "create_sitemap expects laid-out draw data (pages/edges).",
       'Call it through the figma_diagram tool with type:"sitemap" — the server computes the layout.',
+    );
+  }
+
+  // On a board the whole thing is shapes and native connectors: no vectors,
+  // no router, no reflow. A containment line keeps its missing arrow head,
+  // because the relation is still containment and a head would still say
+  // "go here next".
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      boxesToFigJam(d.pages, { prefix: "page", detailAsNote: true }),
+      edgesToFigJam(d.edges, { arrow: false }),
+      font,
+      d.intoFrameId,
     );
   }
 

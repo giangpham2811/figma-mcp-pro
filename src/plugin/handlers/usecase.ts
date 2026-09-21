@@ -19,6 +19,8 @@ import { err } from "../errors.js";
 import { ErrorCode } from "../../shared/protocol.js";
 import { USECASE_MARKER } from "../diagram-mark.js";
 import type { DrawActor, DrawLink, DrawUseCase, UseCaseDraw } from "../../shared/usecase/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -45,6 +47,59 @@ export async function createUseCase(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       "create_usecase expects laid-out draw data (actors/useCases/links/boundary).",
       'Call it through the figma_diagram tool with type:"usecase" — the server computes the layout.',
+    );
+  }
+
+  // The board version keeps the vocabulary (ellipse = use case, square =
+  // actor) and drops the boundary rectangle: a FigJam SECTION already draws
+  // a named box around everything, and two nested boxes read as two
+  // different scopes. The section IS the system boundary here.
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      {
+        name: d.name,
+        title: d.title,
+        subtitle: [d.subtitle, `Trong phạm vi: ${d.boundary.label}`].filter(Boolean).join("  ·  "),
+        x: d.x,
+        y: d.y,
+        w: d.w,
+        h: d.h,
+      },
+      [
+        ...d.actors.map((a) => ({
+          id: a.id,
+          name: a.name,
+          at: a.at,
+          lines: [...a.label, ...a.detail],
+          shape: (a.figure === "box" ? "SQUARE" : "ELLIPSE") as ShapeWithTextNode["shapeType"],
+          fill: "#ffffff",
+          stroke: "#000f22",
+        })),
+        ...d.useCases.map((u) => ({
+          id: u.id,
+          name: u.name,
+          at: u.at,
+          lines: [...u.label, ...u.detail],
+          shape: "ELLIPSE" as const,
+          fill: u.orphan ? "#fff8e6" : "#eef2f7",
+          stroke: u.orphan ? "#b7791f" : "#475569",
+        })),
+      ],
+      d.links.map((l) => ({
+        id: l.id,
+        from: linkEnds(l).from,
+        to: linkEnds(l).to,
+        ...(l.stereotype ? { label: l.stereotype } : {}),
+        dashed: l.kind !== "association",
+        color: l.color,
+        // An association states a relationship; only include/extend are
+        // directed, which is the same call the Design renderer makes.
+        arrow: l.kind !== "association",
+        line: (l.kind === "association" ? "STRAIGHT" : "ELBOWED") as ConnectorNode["connectorLineType"],
+      })),
+      font,
+      d.intoFrameId,
     );
   }
 
@@ -116,6 +171,21 @@ export async function createUseCase(ctx: HandlerContext): Promise<unknown> {
     nodes: nodeIds,
     box: { x: frame.x, y: frame.y, w: frame.width, h: frame.height },
   };
+}
+
+/**
+ * The two ends of a link id.
+ *
+ * This kind writes `a->b` for an association and `a=include=>b` for a UML
+ * relationship, so the shared splitter cannot read it — and should not
+ * learn to, since the convention is local to here.
+ */
+function linkEnds(l: DrawLink): { from: string; to: string } {
+  for (const sep of ["=include=>", "=extend=>", "->"]) {
+    const i = l.id.indexOf(sep);
+    if (i > 0) return { from: l.id.slice(0, i), to: l.id.slice(i + sep.length) };
+  }
+  return { from: l.id, to: l.id };
 }
 
 function sub(ctx: HandlerContext, params: Spec): HandlerContext {

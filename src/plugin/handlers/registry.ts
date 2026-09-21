@@ -73,6 +73,7 @@ import { reflowDiagram } from "./diagram.js";
 import { pauseLive, resumeLive } from "../diagram-live.js";
 import { endDrawing } from "../diagram-apply.js";
 import { deletePage, deleteStyle, deleteUnusedStyles } from "./cleanup.js";
+import { assertSupported } from "../surface.js";
 import {
   findComponent,
   findOrCreateComponent,
@@ -141,7 +142,24 @@ function whileDrawing(handler: Handler): Handler {
  * `batch` is registered by main.ts (it needs the dispatcher itself), so it maps
  * to a placeholder here and is overridden at wire-up.
  */
-export const HANDLERS: Record<Operation, Handler> = {
+/**
+ * Refuse, on a FigJam board, an op that needs something FigJam does not have.
+ *
+ * Wrapped HERE for the same reason `whileDrawing` is: there are three places
+ * a handler gets called — the op path, the `batch` loop and the direct
+ * message path — and a guard remembered in three places is a guard that will
+ * be missed in one. The alternative is `figma.createComponent is not a
+ * function` three calls into a batch, which names nothing the caller can act
+ * on.
+ */
+function gated(op: Operation, handler: Handler): Handler {
+  return async (ctx: HandlerContext): Promise<unknown> => {
+    assertSupported(op);
+    return handler(ctx);
+  };
+}
+
+const RAW_HANDLERS: Record<Operation, Handler> = {
   // reads
   get_document_info: getDocumentInfo,
   get_selection: getSelection,
@@ -248,6 +266,17 @@ export const HANDLERS: Record<Operation, Handler> = {
   get_demo_spec: getDemoSpec,
   delete_demo: deleteDemo,
 };
+
+/**
+ * The registry the dispatcher uses: every handler behind the surface gate.
+ *
+ * `batch` keeps its placeholder identity — main.ts replaces that entry at
+ * wire-up because it needs the dispatcher itself, and gating a function that
+ * is about to be thrown away would only hide that from the next reader.
+ */
+export const HANDLERS: Record<Operation, Handler> = Object.fromEntries(
+  (Object.keys(RAW_HANDLERS) as Operation[]).map((op) => [op, gated(op, RAW_HANDLERS[op])]),
+) as Record<Operation, Handler>;
 
 /** Compile-time-ish safety net: every declared op has a handler. */
 export function assertRegistryComplete(): string[] {

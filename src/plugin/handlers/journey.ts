@@ -21,6 +21,8 @@ import { err } from "../errors.js";
 import { ErrorCode } from "../../shared/protocol.js";
 import { JOURNEY_MARKER } from "../diagram-mark.js";
 import type { DrawLane, DrawStage, JourneyDraw } from "../../shared/journey/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -57,6 +59,44 @@ export async function createJourney(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       `create_journey got malformed draw data (${e instanceof Error ? e.message : String(e)}) — nothing was changed.`,
       'Call it through the figma_diagram tool with type:"journey".',
+    );
+  }
+
+
+  // A board has no grid, so the lanes fold into the stage itself: one column
+  // per stage, its rows written out under the label. That loses the thing a
+  // journey grid is for — reading ACROSS a lane, "where does it hurt?" —
+  // and the emotion face is what buys it back: a board reader scans the row
+  // of faces to find the low point, which is the same question the curve
+  // answers on Design.
+  const FACE: Record<number, string> = { [-2]: "😖", [-1]: "🙁", 0: "😐", 1: "🙂", 2: "😄" };
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: [d.subtitle, d.persona ? `Persona: ${d.persona}` : ""].filter(Boolean).join("  ·  "), x: d.x, y: d.y, w: d.w, h: d.h },
+      d.stages.map((s) => ({
+        id: s.id,
+        name: s.name,
+        // The grid's column position is kept; its lane rows are not, so the
+        // column is given the whole height instead of a header strip.
+        at: { x: s.at.x, y: s.at.y, w: s.at.w, h: Math.max(240, d.h - s.at.y - 48) },
+        lines: [
+          `${FACE[s.feeling] ?? "😐"}  ${s.index}. ${s.label.join(" ")}`,
+          ...d.lanes.flatMap((lane, li) => {
+            const cell = s.cells[li];
+            if (!cell || cell.empty) return [``, lane.label, "—"];
+            return [``, lane.label, ...cell.items.map((i) => i.join(" "))];
+          }),
+        ],
+        shape: "SQUARE" as const,
+        fill: s.fill,
+        stroke: s.stroke,
+      })),
+      // No connectors: stages follow one another by position, and an arrow
+      // between them would claim a transition the model does not assert.
+      [],
+      font,
+      d.intoFrameId,
     );
   }
 

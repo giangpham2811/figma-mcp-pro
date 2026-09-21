@@ -14,6 +14,9 @@ import { normalizeReactions } from "../edit-util.js";
 import { ErrorCode } from "../../shared/protocol.js";
 import { FLOW_MARKER, nameMatchesScreenId } from "../flow-mark.js";
 import type { DrawBox, DrawData, DrawDiamond, DrawEdge } from "../../shared/userflow/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
+import { boxesToFigJam, edgesToFigJam } from "../figjam/adapt.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -70,6 +73,25 @@ export async function createUserflow(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       `create_userflow got malformed draw data (${e instanceof Error ? e.message : String(e)}) — nothing was changed.`,
       "Call it through figma.userflow(spec) / figma_diagram type:\"userflow\" — the server computes the layout.",
+    );
+  }
+
+
+  // A board draws this with native connectors, so the routed polylines the
+  // layout produced are discarded — dragging a screen re-routes its arrows
+  // by itself. A diamond stays a diamond: that shape is how a reader knows
+  // to look for two ways out.
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      [
+        ...boxesToFigJam(d.boxes as never, { prefix: "screen" }),
+        ...boxesToFigJam(d.diamonds as never, { prefix: "decision", shape: () => "DIAMOND" }),
+      ],
+      edgesToFigJam(d.edges),
+      font,
+      d.intoFrameId,
     );
   }
 

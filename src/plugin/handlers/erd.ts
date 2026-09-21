@@ -17,6 +17,9 @@ import { ERD_MARKER } from "../diagram-mark.js";
 import { rememberDrawnEdges, pageModel, openDiagramFrame, preloadDiagramFonts } from "../diagram-apply.js";
 import type { DrawEntity, DrawMarker, ErdDraw } from "../../shared/erd/types.js";
 import type { DrawEdge } from "../../shared/diagram/types.js";
+import { isFigJam } from "../surface.js";
+import { renderFigJam } from "../figjam/render.js";
+import { boxesToFigJam, edgesToFigJam } from "../figjam/adapt.js";
 
 const INK = "#000f22";
 const MUTED = "#5b6675";
@@ -59,6 +62,29 @@ export async function createErd(ctx: HandlerContext): Promise<unknown> {
       ErrorCode.INVALID_PARAMS,
       `create_erd got malformed draw data (${e instanceof Error ? e.message : String(e)}) — nothing was changed.`,
       'Call it through the figma_diagram tool with type:"erd" — the server computes the layout.',
+    );
+  }
+
+
+  // An entity's column list is a stack of rows with badges on Design. Here
+  // it is text inside a cylinder — the ENG_DATABASE shape, which is what a
+  // board already uses for a table. The PK/FK badges are kept inline
+  // because a key nobody can see is the one thing an ERD must not lose.
+  if (isFigJam()) {
+    return renderFigJam(
+      ctx,
+      { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
+      boxesToFigJam(d.entities as never, {
+        prefix: "entity",
+        shape: () => "ENG_DATABASE",
+        extra: (b) => {
+          const attrs = (b as { attributes?: Array<{ name: string; type: string; badge: string }> }).attributes ?? [];
+          return attrs.map((a) => `${a.badge ? `${a.badge} ` : ""}${a.name}: ${a.type}`);
+        },
+      }),
+      edgesToFigJam(d.edges),
+      font,
+      d.intoFrameId,
     );
   }
 

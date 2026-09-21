@@ -44,6 +44,26 @@ const CONSUMERS = [
  * which is the whole difference between a gate and a green light.
  */
 const NOT_A_SPEC_KEY = new Set([
+  // FigJamBox / FigJamLink, not a create() spec.
+  //
+  // A handler that also draws on FigJam speaks two vocabularies in one
+  // file: create() specs for Design and FigJamBox for a board. This scan
+  // cannot tell them apart — it matches any `key:` in the file — so the
+  // board vocabulary is listed here. None of these is ever a valid create()
+  // key, so the scan keeps its teeth: a real typo in a Design spec still
+  // shows up.
+  "at",
+  "lines",
+  "shape",
+  "from",
+  "to",
+  "dashed",
+  "arrow",
+  "line",
+  "subtitle",
+  "prefix",
+  "extra",
+  "detailAsNote",
   // What a handler RETURNS to the server.
   "frameId",
   "pageModel",
