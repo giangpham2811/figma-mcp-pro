@@ -44,10 +44,17 @@ từ Figma. Nếu chưa có, nhờ họ đọc [docs/HUONG-DAN.md](docs/HUONG-DA
 | Ô | Điền |
 |---|---|
 | Name | `Figma` |
-| MCP server URL | đường dẫn người phụ trách kỹ thuật gửi bạn |
+| MCP server URL | dán dòng dưới đây |
+
+```
+https://figjam-pro-relay.giangpm.workers.dev/mcp
+```
 
 Đường dẫn đó **dùng chung cho cả nhóm và không bao giờ đổi**. Dán một lần,
 không phải đụng lại.
+
+> Công ty bạn tự dựng relay riêng thì dùng đường dẫn người phụ trách kỹ
+> thuật gửi, thay cho dòng trên. Phần còn lại giống hệt.
 
 **Nếu dùng Claude Code:** người phụ trách kỹ thuật cài giúp bằng một lệnh.
 Bạn không phải làm gì ở bước này.

@@ -42,6 +42,11 @@ const arch = read("ARCHITECTURE.md");
  * The claims did not disappear — they moved. docs/TOOLS.md and
  * ARCHITECTURE.md are the reference documents, and both are still checked
  * below, so a tool renamed or a kind added still fails a test.
+ *
+ * One exception, at the bottom of this file: the relay URL. That is not a
+ * claim about the code, it is a string the reader copies, and it is the one
+ * thing on the install page that can be wrong in a way the reader cannot
+ * diagnose.
  */
 
 /** Tool names that once existed. Naming one as callable is the bug. */
@@ -181,5 +186,41 @@ describe("the shipped docs", () => {
         expect(slugs, `${rel} links to #${m[1]}, which is not a heading in it`).toContain(m[1]!);
       }
     }
+  });
+  /**
+   * The URL a user copies out of README has to be the one the plugin dials.
+   *
+   * This is the worst drift in the repo to leave untested, because it does
+   * not fail loudly. Point Cowork at relay A and the plugin at relay B and
+   * both connect happily — to different rooms. Cowork then reports "no
+   * plugin connected" while the plugin sits there showing a code, and
+   * nothing anywhere names the real problem. A reader will re-run the
+   * install three times before suspecting the host.
+   *
+   * So: one host, written in three places, asserted identical — and asserted
+   * to match the Worker that actually gets deployed, since renaming it in
+   * wrangler.jsonc is the likeliest way to break all three at once.
+   */
+  it("gives the same relay host in the README, the operator doc and the plugin", () => {
+    // README is the copy-paste source, so it defines the answer; the other
+    // two have to agree with it.
+    const readme = /```\nhttps:\/\/([a-z0-9.-]+)\/mcp\n```/.exec(read("README.md"));
+    expect(readme, "README no longer shows a relay URL in a copyable block").not.toBeNull();
+    const host = readme![1]!;
+
+    // Pinned to the constant, not to "somewhere in the file": ui.html also
+    // carries `https://ten-relay.workers.dev` as placeholder text in the
+    // host input, and an example is supposed to differ from the real thing.
+    expect(
+      read("plugin/ui.html"),
+      "plugin/ui.html dials a different relay than the README tells people to paste",
+    ).toContain(`var DEFAULT_RELAY = "https://${host}";`);
+
+    expect(read("docs/COWORK.md"), "docs/COWORK.md names a different relay").toContain(host);
+
+    // `<worker-name>.<account>.workers.dev` — so the first label is the name
+    // wrangler deploys under.
+    const deployed = JSON.parse(read("relay/wrangler.jsonc").replace(/^\s*\/\/.*$/gm, "")) as { name: string };
+    expect(host.split(".")[0], "the docs point at a Worker this repo does not deploy").toBe(deployed.name);
   });
 });
