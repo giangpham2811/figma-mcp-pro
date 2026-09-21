@@ -51,7 +51,7 @@ beforeEach(() => {
   };
 });
 
-function seedThreeFrames(): Fake[] {
+function seedThreeFrames(): [Fake, Fake, Fake] {
   const a = frame("1:1", "Home");
   const b = frame("1:2", "Details");
   const c = frame("1:3", "Done");
@@ -67,10 +67,10 @@ describe("build_demo", () => {
     );
 
     expect(res.steps).toBe(3);
-    expect(a.reactions[0].actions[0].destinationId).toBe(b!.id);
-    expect(b!.reactions[0].actions[0].destinationId).toBe(c!.id);
+    expect(a.reactions[0].actions[0].destinationId).toBe(b.id);
+    expect(b.reactions[0].actions[0].destinationId).toBe(c!.id);
     // The last frame is a destination, never a source.
-    expect(c!.reactions).toEqual([]);
+    expect(c.reactions).toEqual([]);
     // Without a starting point Figma presents from the top-left frame on the
     // page, which is almost never step 1.
     expect(page.flowStartingPoints).toEqual([{ nodeId: a.id, name: "Checkout" }]);
@@ -113,7 +113,7 @@ describe("the store", () => {
   it("names frames that have been deleted since", async () => {
     const [, b] = seedThreeFrames();
     await buildDemo(ctx({ name: "Checkout", steps: [{ frame: "Home" }, { frame: "Details" }] }));
-    nodes.delete(b!.id);
+    nodes.delete(b.id);
 
     const res: any = await getDemoSpec(ctx({ name: "Checkout" }));
     expect(res.missingFrames).toEqual(["Details"]);
@@ -156,7 +156,7 @@ describe("play_demo", () => {
     await buildDemo(
       ctx({ name: "Checkout", steps: [{ frame: "Home" }, { frame: "Details" }, { frame: "Done" }], holdMs: 200 }),
     );
-    nodes.delete(b!.id);
+    nodes.delete(b.id);
 
     const c = ctx({ name: "Checkout", speed: 100 });
     const res: any = await playDemo(c);
