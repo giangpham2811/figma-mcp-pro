@@ -105,6 +105,9 @@ export const WRITE_OPERATIONS = [
   "create_sequence",
   "create_state",
   "create_sitemap",
+  "create_persona",
+  "create_journey",
+  "create_usecase",
   // Re-route a drawn diagram's arrows from where its boxes are now.
   "reflow_diagram",
   // Component authoring. Everything below mutates the design system itself,

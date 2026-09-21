@@ -48,9 +48,12 @@ describe("the diagram skills", () => {
     expect(skillDirs).toEqual([
       "figma-activity",
       "figma-erd",
+      "figma-journey",
+      "figma-persona",
       "figma-sequence",
       "figma-sitemap",
       "figma-state",
+      "figma-usecase",
       "figma-userflow",
     ]);
     // Every `figma_diagram` type has a skill named after it, and the userflow

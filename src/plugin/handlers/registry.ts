@@ -66,6 +66,9 @@ import { createErd } from "./erd.js";
 import { createSequence } from "./sequence.js";
 import { createState } from "./state.js";
 import { createSitemap } from "./sitemap.js";
+import { createPersona } from "./persona.js";
+import { createJourney } from "./journey.js";
+import { createUseCase } from "./usecase.js";
 import { reflowDiagram } from "./diagram.js";
 import { pauseLive, resumeLive } from "../diagram-live.js";
 import { endDrawing } from "../diagram-apply.js";
@@ -209,6 +212,9 @@ export const HANDLERS: Record<Operation, Handler> = {
   create_sequence: whileDrawing(createSequence),
   create_state: whileDrawing(createState),
   create_sitemap: whileDrawing(createSitemap),
+  create_persona: whileDrawing(createPersona),
+  create_journey: whileDrawing(createJourney),
+  create_usecase: whileDrawing(createUseCase),
   reflow_diagram: whileDrawing(reflowDiagram),
   // component authoring
   find_component: findComponent,

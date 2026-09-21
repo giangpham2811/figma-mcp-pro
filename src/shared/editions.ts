@@ -24,13 +24,10 @@ export const EDITION: "free" | "pro" = "pro";
 export const PRO_TOOLS = [] as const;
 
 /** figma_diagram kinds not implemented yet. */
-export const PRO_DIAGRAM_KINDS = ["journey", "persona", "usecase"] as const;
+export const PRO_DIAGRAM_KINDS = [] as const;
 
 /** Plugin operations (figma_read ops and figma.* write methods) that exist only in Pro. */
 export const PRO_OPERATIONS = [
-  "create_usecase",
-  "create_journey",
-  "create_persona",
 ] as const;
 
 /** figma.* sandbox methods that exist only in Pro (camelCase names agents call). */

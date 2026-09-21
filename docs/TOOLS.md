@@ -37,7 +37,7 @@ The six tools split by *intent* — diagnose, read, write, learn:
 | Check the diagrams **agree with each other** | Nothing to call: `figma_diagram` cross-checks every draw against its page and returns `consistency`. |
 | **Verify** what you just drew | `figma_read` op `layout_audit` (structural facts: overflow, clipping, truncation) — then `screenshot` once for human review. |
 | Move tokens in/out of the file | `export_tokens` (read) / `importTokens`, `setupTokens` (write). |
-| Learn the safe-default semantics, layout math, or recipes | `figma_docs` (`rules` \| `layout` \| `api` \| `tokens` \| `icons` \| `recipes` \| `style` \| `userflow` \| `activity` \| `erd` \| `sequence` \| `sitemap` \| `state`). |
+| Learn the safe-default semantics, layout math, or recipes | `figma_docs` (`rules` \| `layout` \| `api` \| `tokens` \| `icons` \| `recipes` \| `style` \| `userflow` \| `activity` \| `erd` \| `sequence` \| `sitemap` \| `state` \| `persona` \| `journey` \| `usecase`). |
 
 The typical session: `figma_status` → `figma_rules` → (for a feature rather than a single screen, `figma_diagram` type:`"userflow"` first, once the user has agreed to map the flow) → `figma_write` (draw, reusing what the rule sheet showed) → `layout_audit` → fix → `screenshot` for the human.
 
@@ -797,6 +797,126 @@ Returns `{ frameId, name, nodes: { id: figmaNodeId }, box, warnings, stats }`.
 **The findings**: a state nothing can reach from the initial one; a state with **no way out** that is not marked `final`; **two transitions leaving one state on the same event with no guard to choose between them** — whichever the implementation checks first wins; a `final` state with a way out; a transition into the initial dot; a `choice` that does not branch or whose branches are unlabelled; a `fork` with no `join`; a transition that never says what triggers it.
 
 The last one has a deliberate exemption: a state with a `do` activity may leave by an unlabelled transition, because that is exactly what UML's *completion transition* means. One unguarded branch of a `choice` is likewise fine — it reads as the `else`.
+
+### `type: "usecase"` — what the system does, and for whom
+
+The scope artefact. Everything inside the system boundary is what is being
+built; everything outside it is who it is being built for. An argument about
+scope is an argument about where that rectangle goes.
+
+A use case is a **goal**, not a step: "Chia tiền bữa ăn", never "Màn hình
+chia tiền". There is no ordering between use cases and no `edges` array —
+the only relationships UML defines are `includes` (A always does B) and
+`extends` (B sometimes adds itself to A). **`extends` goes on the extension,
+not the base**, because the base does not know its extensions exist; the tool
+draws what you write rather than correcting the direction.
+
+| field | shape |
+|---|---|
+| `actors[]` | `{ id, label?, kind?, detail? }`. `kind`: `primary` (initiates, drawn left) · `secondary` (the system calls on them, right) · `system` (another system — drawn as a **box**, because a stick figure for "Ngân hàng" invites people to think a human is involved). |
+| `useCases[]` (required) | `{ id, label?, actors?: [actorId], includes?: [ucId], extends?: [ucId], detail?, screenId? }`. |
+| `options` | `system` (boundary label, defaults to the title) · `perColumn` (default 6). |
+
+Associations are **straight lines**, not elbows. An elbowed line reads as a
+route through a process, and a use case diagram is not a process. Crossings
+are therefore accepted: in this notation a crossing line is ordinary, while a
+detour around the whole picture reads as a mistake.
+
+Findings: a use case nobody can start (no actor, and nothing `includes` it —
+one reached only by `include` is exempt, its actor being whoever started the
+including case) · an actor who takes part in nothing · an include cycle · a
+reference to an id that does not exist. **An actor-to-actor link is DROPPED,
+not drawn**: a plain line between two actors means nothing in UML, a drawn
+line is a claim, and a warning beside a lying picture is still a lying
+picture. Orphans draw in amber and dashed, so the argument happens on the
+wall rather than in a warnings array.
+
+Compact form: `text`.
+
+```
+actor nguoi_chia "Người chia tiền"  primary
+actor ngan_hang  "Ngân hàng"        system
+
+uc chia "Chia tiền bữa ăn"
+  by: nguoi_chia
+  includes: tinh_no
+uc tinh_no "Tính ai nợ ai"
+uc nhac "Nhắc người chưa trả"
+  by: nguoi_chia
+  extends: chia
+```
+
+### `type: "journey"` — what a person does over time, and how it feels
+
+A journey stage is a **phase of intent**, not a screen. "Hỏi đồng nghiệp xem
+có đáng làm không" is a stage; it has no screen and it belongs on the map.
+Model stages as screens and you have drawn a second, worse userflow — so
+there is no `edges` array, and stages are ordered by array position alone.
+
+| field | shape |
+|---|---|
+| `stages[]` (required) | `{ id, label?, doing?, touchpoints?, thinking?, feeling?, pains?, opportunities?, screenId? }`. `feeling` is `-2..2` in whole steps: despairing, annoyed, neutral, pleased, delighted. |
+| `persona` | the persona id this journey is for, so the two artefacts join up. |
+| `options` | `columnWidth` (default 220) · `emotionCurve` (default true; false gives a plain table). |
+
+Lanes line up horizontally because the comparison this artefact supports is
+*across* a lane ("where does it hurt?"). An empty cell draws as a faint dash
+rather than blank: blank reads as "not filled in yet", a dash reads as
+"nothing here", which is the finding.
+
+Findings: a stage no touchpoint serves · pain points with no opportunities (a
+complaint, not a map) · an emotion track that never moves across four or more
+stages — the tell that the column was filled in rather than researched · no
+negative stage at all (the demo path, not the experience) · a stage that
+lists a pain and feels positive, where one of the two columns is guessed.
+
+Compact form: `text`.
+
+```
+stage an "Ăn xong, ai đó trả tiền"  feeling: 1
+  does: Một người quẹt thẻ cho cả nhóm
+  touch: Hoá đơn giấy
+stage chia "Chia tiền"  feeling: -1
+  does: Chụp ảnh hoá đơn
+  pain: Không nhớ ai đã chuyển khoản
+  opp: Đối soát tự động khi số dư thay đổi
+```
+
+### `type: "persona"` — who this is being built for
+
+A **behavioural** model, not a demographic one. An age, a city and a stock
+photo settle no argument; what this person is trying to get done and what
+stops them settle several. So `goals` and `frustrations` are the load-bearing
+fields, `demographics` is optional and drawn last, and the avatar is initials
+on a coloured disc — never a photo, because a stock headshot makes a persona
+feel researched when it is not.
+
+| field | shape |
+|---|---|
+| `personas[]` (required) | `{ id, name?, title?, role?, quote?, goals?, frustrations?, behaviours?, tools?, demographics?, scenario?, screenId? }`. |
+| `role` | `primary` (blue — ideally exactly one) · `secondary` (teal) · `served` (violet — affected without using it) · `negative` (red — explicitly NOT built for, and the one teams never write down). |
+| `options` | `columns` (default 3). |
+
+Cards share one height, because the comparison is row-against-row across two
+cards and ragged tops put those rows at different heights.
+
+Findings: no goals and no frustrations (a portrait) · two or more demographic
+fields and no observed behaviour (a marketing segment wearing a face) · two
+personas whose goals overlap 70%+ (one person with two job titles — the
+product then gets two backlogs for one need) · no primary, or more than one ·
+more than five personas, past which nobody recalls them in planning.
+
+Compact form: `text`.
+
+```
+persona lan "Lan Nguyễn" | Kế toán trưởng | primary
+  quote: Tôi chỉ muốn biết cuối tháng ai còn nợ ai.
+  goal: Chốt sổ trong một buổi tối
+  pain: Mỗi người gửi một kiểu ảnh chụp hoá đơn
+  does: Gõ lại số tiền vào Excel của riêng mình
+  tool: Excel, Zalo
+  about: Tuổi = 34
+```
 
 ### Drawing a whole set in one call
 

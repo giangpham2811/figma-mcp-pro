@@ -27,10 +27,20 @@ describe("the declared shape of each tool", () => {
     ]);
   });
 
-  it("draws all ten kinds, userflow included", () => {
+  it("draws all nine kinds, userflow included", () => {
     const t = TOOLS.find((x) => x.name === "figma_diagram")!;
     const type = (t.inputSchema as any).properties.type;
-    expect(type.enum).toEqual(["activity", "erd", "sequence", "sitemap", "state", "userflow"]);
+    expect(type.enum).toEqual([
+      "activity",
+      "erd",
+      "journey",
+      "persona",
+      "sequence",
+      "sitemap",
+      "state",
+      "usecase",
+      "userflow",
+    ]);
     // figma_userflow was folded in: one tool description instead of two, and
     // the second one was 4,314 bytes every session for a kind most sessions
     // never draw.
@@ -84,6 +94,12 @@ describe("what the tool list costs to load", () => {
     // file/page routing: agents were stuck asking the user to click Connect
     // whenever two Figma windows were open. Raise this deliberately, with the
     // reason in the commit message — never to make a red test green.
-    expect(bytes).toBeLessThan(18_600);
+    //
+    // 18,700B: usecase, journey and persona joined the `type` enum and the
+    // figma_docs section list. About 72B per kind, and unavoidable — a kind
+    // missing from the enum is a kind the agent cannot call. The rest of each
+    // kind's teaching lives in figma_docs and its skill, which are loaded on
+    // demand and cost nothing until they are.
+    expect(bytes).toBeLessThan(18_700);
   });
 });

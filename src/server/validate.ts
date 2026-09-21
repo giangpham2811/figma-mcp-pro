@@ -535,6 +535,15 @@ const OP_SCHEMAS: Partial<Record<Operation, z.ZodTypeAny>> = {
     .passthrough(),
   apply_design_system: z.object({ nodeId: nodeId.optional() }).passthrough(),
   audit_design_system: params,
+  // The draw payload is produced by the server's own layout pass, so the
+  // schema only guards the shape the bridge needs.
+  create_persona: z.object({ personas: z.array(z.unknown()) }).passthrough(),
+  create_journey: z
+    .object({ stages: z.array(z.unknown()), lanes: z.array(z.unknown()) })
+    .passthrough(),
+  create_usecase: z
+    .object({ actors: z.array(z.unknown()), useCases: z.array(z.unknown()) })
+    .passthrough(),
   a11y_audit: z.object({ nodeId: nodeId.optional() }).passthrough(),
   build_demo: z
     .object({
@@ -1161,6 +1170,151 @@ export const sitemapSpecSchema = z
   );
 
 /** Parse a sitemap spec or throw the standard INVALID_PARAMS OpError. */
+const personaEntrySchema = z
+  .object({
+    id: z.string().trim().min(1),
+    name: z.string().optional(),
+    title: z.string().optional(),
+    role: z.string().optional(),
+    quote: z.string().optional(),
+    goals: z.array(z.string()).optional(),
+    frustrations: z.array(z.string()).optional(),
+    behaviours: z.array(z.string()).optional(),
+    tools: z.array(z.string()).optional(),
+    demographics: z.record(z.union([z.string(), z.number()])).optional(),
+    scenario: z.string().optional(),
+    screenId: z.union([z.string(), z.array(z.string())]).optional(),
+    cls: z.string().optional(),
+  })
+  .passthrough();
+
+const personaSpecSchema = z
+  .object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    text: z.string().optional(),
+    parentId: z.string().trim().min(1).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    personas: z.array(personaEntrySchema).optional(),
+    options: z.record(z.unknown()).optional(),
+  })
+  .passthrough()
+  .refine((v) => v.text || (v.personas && v.personas.length > 0), {
+    message: "a persona diagram needs `personas` or the compact `text` form",
+  });
+
+const journeyStageSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    label: z.string().optional(),
+    doing: z.array(z.string()).optional(),
+    touchpoints: z.array(z.string()).optional(),
+    thinking: z.array(z.string()).optional(),
+    feeling: z.number().optional(),
+    pains: z.array(z.string()).optional(),
+    opportunities: z.array(z.string()).optional(),
+    screenId: z.union([z.string(), z.array(z.string())]).optional(),
+  })
+  .passthrough();
+
+const journeySpecSchema = z
+  .object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    persona: z.string().optional(),
+    text: z.string().optional(),
+    parentId: z.string().trim().min(1).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    stages: z.array(journeyStageSchema).optional(),
+    options: z.record(z.unknown()).optional(),
+  })
+  .passthrough()
+  .refine((v) => v.text || (v.stages && v.stages.length > 0), {
+    message: "a journey needs `stages` or the compact `text` form",
+  });
+
+export function validateJourneySpec(spec: unknown): Record<string, unknown> {
+  const parsed = journeySpecSchema.safeParse(spec ?? {});
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const path = first?.path.join(".") || "(root)";
+    throw new OpError(
+      ErrorCode.INVALID_PARAMS,
+      `Invalid journey spec: ${first?.message ?? "validation failed"} at ${path}.`,
+      'Shape: { title, persona, stages:[{id, label, doing:[], touchpoints:[], thinking:[], feeling:-2..2, pains:[], opportunities:[]}] }. Stages are ordered by array position — there is no edges array, because a journey stage is a phase of intent, not a screen transition. See figma_docs(section="journey").',
+    );
+  }
+  return parsed.data as Record<string, unknown>;
+}
+
+const useCaseActorSchema = z
+  .object({
+    id: z.string().trim().min(1),
+    label: z.string().optional(),
+    kind: z.string().optional(),
+    detail: z.string().optional(),
+  })
+  .passthrough();
+
+const useCaseEntrySchema = z
+  .object({
+    id: z.string().trim().min(1),
+    label: z.string().optional(),
+    actors: z.array(z.string()).optional(),
+    includes: z.array(z.string()).optional(),
+    extends: z.array(z.string()).optional(),
+    detail: z.string().optional(),
+    screenId: z.union([z.string(), z.array(z.string())]).optional(),
+  })
+  .passthrough();
+
+const useCaseSpecSchema = z
+  .object({
+    title: z.string().optional(),
+    subtitle: z.string().optional(),
+    text: z.string().optional(),
+    parentId: z.string().trim().min(1).optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    actors: z.array(useCaseActorSchema).optional(),
+    useCases: z.array(useCaseEntrySchema).optional(),
+    options: z.record(z.unknown()).optional(),
+  })
+  .passthrough()
+  .refine((v) => v.text || (v.useCases && v.useCases.length > 0), {
+    message: "a use case diagram needs `useCases` or the compact `text` form",
+  });
+
+export function validateUseCaseSpec(spec: unknown): Record<string, unknown> {
+  const parsed = useCaseSpecSchema.safeParse(spec ?? {});
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const path = first?.path.join(".") || "(root)";
+    throw new OpError(
+      ErrorCode.INVALID_PARAMS,
+      `Invalid use case spec: ${first?.message ?? "validation failed"} at ${path}.`,
+      'Shape: { title, actors:[{id, label, kind:"primary"|"secondary"|"system"}], useCases:[{id, label, actors:[actorId], includes:[ucId], extends:[ucId]}] }. `extends` goes on the EXTENSION, not the base. See figma_docs(section="usecase").',
+    );
+  }
+  return parsed.data as Record<string, unknown>;
+}
+
+export function validatePersonaSpec(spec: unknown): Record<string, unknown> {
+  const parsed = personaSpecSchema.safeParse(spec ?? {});
+  if (!parsed.success) {
+    const first = parsed.error.issues[0];
+    const path = first?.path.join(".") || "(root)";
+    throw new OpError(
+      ErrorCode.INVALID_PARAMS,
+      `Invalid persona spec: ${first?.message ?? "validation failed"} at ${path}.`,
+      'Shape: { title, personas:[{id, name, title, role, quote, goals:[], frustrations:[], behaviours:[], tools:[]}] }. `goals` and `frustrations` are what a persona is FOR — a card without them settles no argument. See figma_docs(section="persona").',
+    );
+  }
+  return parsed.data as Record<string, unknown>;
+}
+
 export function validateSitemapSpec(spec: unknown): Record<string, unknown> {
   const parsed = sitemapSpecSchema.safeParse(spec ?? {});
   if (!parsed.success) {

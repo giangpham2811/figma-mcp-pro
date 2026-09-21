@@ -153,7 +153,7 @@ export const TOOLS: Tool[] = [
         gap: { type: "number", description: "Gap between batched frames in px (default 250)." },
         type: {
           type: "string",
-          enum: ["activity", "erd", "sequence", "sitemap", "state", "userflow"],
+          enum: ["activity", "erd", "journey", "persona", "sequence", "sitemap", "state", "usecase", "userflow"],
           description: "Which diagram to draw. activity = a business process (with or without swimlanes); erd = a data model of tables, columns and the keys that join them; sequence = the exchange between systems over time; sitemap = the product's PAGES and which page contains which — containment, NOT navigation; state = the lifecycle of ONE entity, the values it can hold and what moves it between them; userflow = the screens a user moves through, which alone takes `mermaid` rather than `text`.",
         },
         title: { type: "string", description: "Heading drawn on the frame, e.g. \"Purchase order approval\"." },
@@ -258,7 +258,7 @@ export const TOOLS: Tool[] = [
   {
     name: "figma_docs",
     description:
-      "On-demand documentation for this API and its safe-by-default rules. Sections: rules | layout | api | tokens | icons | recipes | style | userflow | activity | erd | sequence | sitemap | state. Read `style` when drawing a screen with NO design.md / no existing design system — it is the default type scale, spacing grid, color palette and elevation to fall back on instead of inventing values (which reads as generic/lifeless).",
+      "On-demand documentation for this API and its safe-by-default rules. Sections: rules | layout | api | tokens | icons | recipes | style | userflow | activity | erd | sequence | sitemap | state | persona | journey | usecase. Read `style` when drawing a screen with NO design.md / no existing design system — it is the default type scale, spacing grid, color palette and elevation to fall back on instead of inventing values (which reads as generic/lifeless).",
     inputSchema: {
       type: "object",
       properties: {

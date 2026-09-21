@@ -16,6 +16,9 @@ import { ERD } from "./erd.md.js";
 import { SEQUENCE } from "./sequence.md.js";
 import { SITEMAP } from "./sitemap.md.js";
 import { STATE } from "./state.md.js";
+import { PERSONA } from "./persona.md.js";
+import { JOURNEY } from "./journey.md.js";
+import { USECASE } from "./usecase.md.js";
 
 export const DOC_SECTIONS = {
   rules: RULES,
@@ -31,6 +34,9 @@ export const DOC_SECTIONS = {
   sequence: SEQUENCE,
   sitemap: SITEMAP,
   state: STATE,
+  persona: PERSONA,
+  journey: JOURNEY,
+  usecase: USECASE,
 } as const;
 
 export type DocSection = keyof typeof DOC_SECTIONS;

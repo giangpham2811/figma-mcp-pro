@@ -185,6 +185,9 @@ const METHOD_TO_OP: Record<string, AnyOperation> = {
   listDemos: "list_demos",
   getDemoSpec: "get_demo_spec",
   deleteDemo: "delete_demo",
+  createPersona: "create_persona",
+  createJourney: "create_journey",
+  createUseCase: "create_usecase",
 };
 
 /**

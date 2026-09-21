@@ -22,6 +22,9 @@ import { runErd } from "./erd.js";
 import { runSequence } from "./sequence.js";
 import { runState } from "./state.js";
 import { runSitemap } from "./sitemap.js";
+import { runPersona } from "./persona.js";
+import { runJourney } from "./journey.js";
+import { runUseCase } from "./usecase.js";
 import { applyPatch } from "./patch.js";
 import { checkConsistency, type ConsistencyFinding } from "../shared/model/check.js";
 import { checkCoverage, type ArtboardRef } from "../shared/model/coverage.js";
@@ -919,6 +922,9 @@ function runDiagramType(
   if (type === "sequence") return runSequence(spec, call, undefined, into);
   if (type === "state") return runState(spec, call, undefined, into);
   if (type === "sitemap") return runSitemap(spec, call, undefined, into);
+  if (type === "persona") return runPersona(spec, call, undefined, into);
+  if (type === "journey") return runJourney(spec, call, undefined, into);
+  if (type === "usecase") return runUseCase(spec, call, undefined, into);
   if (type === "userflow") return runUserflow(spec, call, undefined, into);
   if (typeof type === "string" && isProFeature(type)) {
     const pro = proFeatureMessage(`figma_diagram type:"${type}"`);
@@ -929,7 +935,10 @@ function runDiagramType(
     'type:"erd" (a data model)',
     'type:"sequence" (an exchange between systems, over time)',
     'type:"sitemap" (the product\'s pages and which one contains which)',
+    'type:"journey" (what a person does over time, and how it feels)',
+    'type:"persona" (who this is being built for)',
     'type:"state" (the lifecycle of one entity)',
+    'type:"usecase" (what the system does, and for whom)',
     'type:"userflow" (the screens a user moves through)',
   ];
   throw new OpError(
