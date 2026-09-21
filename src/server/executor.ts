@@ -177,6 +177,9 @@ const METHOD_TO_OP: Record<string, AnyOperation> = {
   generateDesignSystem: "generate_design_system",
   applyDesignSystem: "apply_design_system",
   auditDesignSystem: "audit_design_system",
+  a11yAudit: "a11y_audit",
+  accessibilityAudit: "a11y_audit",
+  responsiveAudit: "responsive_audit",
 };
 
 /**

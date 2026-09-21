@@ -28,8 +28,6 @@ export const PRO_DIAGRAM_KINDS = ["journey", "persona", "usecase"] as const;
 
 /** Plugin operations (figma_read ops and figma.* write methods) that exist only in Pro. */
 export const PRO_OPERATIONS = [
-  "a11y_audit",
-  "responsive_audit",
   "list_demos",
   "get_demo_spec",
   "create_usecase",

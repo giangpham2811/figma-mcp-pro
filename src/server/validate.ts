@@ -86,6 +86,7 @@ const needsNodeId: Record<string, true> = {
   reset_instance_overrides: true,
   match_main_values: true,
   arrange_component_set: true,
+  responsive_audit: true,
 };
 
 /** Per-op refinements layered on top of the base params object. */
@@ -534,6 +535,14 @@ const OP_SCHEMAS: Partial<Record<Operation, z.ZodTypeAny>> = {
     .passthrough(),
   apply_design_system: z.object({ nodeId: nodeId.optional() }).passthrough(),
   audit_design_system: params,
+  a11y_audit: z.object({ nodeId: nodeId.optional() }).passthrough(),
+  responsive_audit: z
+    .object({
+      nodeId,
+      widths: z.array(z.number().positive().max(10_000)).min(1).optional(),
+      simulate: z.boolean().optional(),
+    })
+    .passthrough(),
 };
 
 export interface ValidatedOp {

@@ -96,6 +96,7 @@ import {
   applyDesignSystem,
   auditDesignSystem,
 } from "./design-system-gen.js";
+import { a11yAudit, responsiveAudit } from "./audit-a11y.js";
 
 export type Handler = (ctx: HandlerContext) => Promise<unknown>;
 
@@ -225,6 +226,8 @@ export const HANDLERS: Record<Operation, Handler> = {
   generate_design_system: whileDrawing(generateDesignSystem),
   apply_design_system: applyDesignSystem,
   audit_design_system: auditDesignSystem,
+  a11y_audit: a11yAudit,
+  responsive_audit: responsiveAudit,
 };
 
 /** Compile-time-ish safety net: every declared op has a handler. */

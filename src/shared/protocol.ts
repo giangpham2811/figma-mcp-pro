@@ -52,6 +52,10 @@ export const READ_OPERATIONS = [
   "get_instance_overrides",
   // Is what is in this file actually a system, or sixty unrelated frames?
   "audit_design_system",
+  // Contrast, target size, text size — the three a machine can be sure of.
+  "a11y_audit",
+  // Will this survive a narrower viewport?
+  "responsive_audit",
 ] as const;
 
 /** Write operations executed by the plugin. */
@@ -334,6 +338,9 @@ export const OP_TIMEOUTS: Partial<Record<Operation, number>> = {
   generate_design_system: 300_000,
   apply_design_system: 120_000,
   audit_design_system: 120_000,
+  a11y_audit: 90_000,
+  // The simulate mode resizes and re-measures once per width.
+  responsive_audit: 120_000,
 };
 
 /** Batch requests are split into chunks of this size and streamed. */
