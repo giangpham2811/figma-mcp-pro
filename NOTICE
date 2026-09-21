@@ -1,0 +1,8 @@
+This project is a fork of Reqwise Figma MCP (free edition)
+  https://github.com/hoangpm96/reqwise-figma-mcp
+  Copyright (c) Hoang Phan — MIT, see LICENSE.
+
+Everything under the component-authoring, design-system, audit, diagram and
+demo layers added in this fork is written against Figma's public Plugin API
+from the upstream project's published feature list. No source from the
+upstream commercial "Pro" edition was used, and none was available.
