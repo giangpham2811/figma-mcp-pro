@@ -106,6 +106,8 @@ Returns rich diagnostics — never a bare boolean:
 | `get_components` | — (optional `detail`, `depth`, `includeAnatomy`) | Local components / component sets. Default keeps a compact `id/name/type/key` shape; `detail:"design"` includes properties, variants and text layers. Add `includeAnatomy:true` for bounded subtree anatomy. |
 | `get_component` | `componentId` or `nodeId` or `key` | Rich single-component read: component property definitions, variants, text layers, slots, usage hints and anatomy by default. |
 | `get_library_component` | `key` | Import a component from a **published shared library** by key and read it richly — the serialization doubles as a reconstruction spec. The import races an internal timeout, with a hint pointing at library publish/permission issues. |
+| `list_demos` | — | Every demo stored on this document: name, step count, frame names. Demos live on the document, not in a session — the point of naming one is that it is still there next week, in somebody else's Figma window. |
+| `get_demo_spec` | `name` | The full step list. Frames that no longer exist are named under `missingFrames` with a warning, rather than leaving the caller to debug `play_demo` instead of their own file. |
 | `a11y_audit` | — (optional `nodeId`) | Contrast, target size and text size — **the three a machine can be certain about**. Contrast is measured on the COMPOSITED colour: `#767676` on white is 4.54:1 and passes, the same grey at 60% opacity composites to ~2.3:1 and fails, and reading the raw fill is how a "secondary" text style passes an audit and fails a user. Text with no filled ancestor is counted and skipped, never assumed to be on white. A node with real prototype reactions that is under 44px is an `error`; one that merely *looks* like a button by name is a `warning`. No reading-order, alt-text or colour-only-signal checks — a static tree cannot be sure of those, and a checker that cries wolf gets muted. |
 | `responsive_audit` | `nodeId` (optional `widths`, `simulate`) | Will this survive a narrower viewport? **Static by default**: reports constructions that *cannot* reflow — a fixed width wider than the narrowest target with no grow/stretch/hug, a hugging text node in a fixed parent (the usual cause of "the copy is cut off on mobile"), an ABSOLUTE child of an auto-layout frame, a row of ≥3 fixed children with `NO_WRAP` that does not fit. `simulate: true` actually resizes the frame at each width and measures real overflow — it **mutates the file** for the duration, so the original geometry is captured first and restored in a `finally`, including when the sweep throws. |
 | `audit_design_system` | — | **Is this a system, or sixty unrelated frames?** Four questions Figma cannot answer from inside: components nobody instantiates, near-duplicate names (`Button`, `Button Copy`, `button 2`), solid colours that never became tokens (ranked by how often they appear), and text that fails contrast against its nearest filled ancestor. Text with no filled ancestor is skipped rather than assumed to be on white — a guess there manufactures findings that are not real. |
@@ -348,6 +350,23 @@ guess. There is no undo on the agent's side of the wire.
 | `addComponentProperty` | `addComponentProperty(nodeId, name, type, defaultValue, { preferredValues })` | `type` is `BOOLEAN`/`TEXT`/`INSTANCE_SWAP`/`VARIANT`. Routing is automatic: VARIANT properties live on the SET, the rest on a COMPONENT, and calling the wrong one throws a Figma error that names neither fact. Returns the `#1:2`-suffixed **key**, which is what `setProperties` needs and what nobody can guess. |
 | `editComponentProperty` | `editComponentProperty(nodeId, name, { newName, defaultValue, preferredValues })` | Renaming **mints a new key**; the result carries both `previousKey` and `key` so a caller holding the old one finds out now rather than three calls later. |
 | `deleteComponentProperty` | `deleteComponentProperty(nodeId, name)` | Every instance loses the value it had for that property. Warns accordingly. |
+
+#### Demos
+
+**A Figma plugin cannot record video.** There is no screen capture in the
+Plugin API. What a plugin can do is wire the prototype so the flow is
+clickable in Figma's own presenter, and drive the canvas itself on a timer so
+a walkthrough plays on the design surface. That is what these do, and
+`playDemo({capture:true})` exports one PNG per step for assembling a GIF or
+MP4 with a real encoder. Anything claiming a plugin records video is either
+screen-recording outside Figma or stitching exactly these frames.
+
+| Method | Signature | Notes |
+|---|---|---|
+| `buildDemo` | `buildDemo({ name, steps, transition, holdMs, durationMs, overwrite, description })` | Wires frame N → frame N+1 with **real Figma prototype reactions**, so the flow works in Present with no plugin running — that is the difference between a demo and an animation. `steps` are `{ frame: "Home" }` or `{ frameId }`, optionally with `label`, `holdMs` and `hotspotId`; the hotspot defaults to the whole frame, because a demo that needs the viewer to find a 40px button stalls in front of an audience. Also registers the first frame as a flow starting point — without one Figma starts the prototype at the top-left frame on the page, which is almost never step 1. An existing name needs `overwrite: true`. |
+| `playDemo` | `playDemo({ name, speed, capture, scale })` | Drives the canvas: selection and viewport move frame to frame on each step's hold. Progress is emitted **before** each wait, because that ping is what resets the bridge timeout — a demo with 2s holds would otherwise die around step fifteen. A frame that has been deleted is skipped with a warning, not a crash. `capture: true` returns base64 PNGs (`scale` defaults to 0.5, since a ten-step capture at 1× is a large response). |
+| `listDemos` / `getDemoSpec` | — | See the read ops above. |
+| `deleteDemo` | `deleteDemo({ name \| all, force, unwire })` | Deletes the record. **Leaves the prototype reactions in place** unless `unwire: true` — removing bookkeeping must not silently strip links a designer may have edited since. `all: true` needs `force: true`. |
 
 #### Design system generation
 

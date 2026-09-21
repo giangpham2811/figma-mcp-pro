@@ -97,6 +97,13 @@ import {
   auditDesignSystem,
 } from "./design-system-gen.js";
 import { a11yAudit, responsiveAudit } from "./audit-a11y.js";
+import {
+  buildDemo,
+  playDemo,
+  listDemos,
+  getDemoSpec,
+  deleteDemo,
+} from "./demo.js";
 
 export type Handler = (ctx: HandlerContext) => Promise<unknown>;
 
@@ -228,6 +235,12 @@ export const HANDLERS: Record<Operation, Handler> = {
   audit_design_system: auditDesignSystem,
   a11y_audit: a11yAudit,
   responsive_audit: responsiveAudit,
+  // demos
+  build_demo: buildDemo,
+  play_demo: playDemo,
+  list_demos: listDemos,
+  get_demo_spec: getDemoSpec,
+  delete_demo: deleteDemo,
 };
 
 /** Compile-time-ish safety net: every declared op has a handler. */

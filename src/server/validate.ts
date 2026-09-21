@@ -536,6 +536,38 @@ const OP_SCHEMAS: Partial<Record<Operation, z.ZodTypeAny>> = {
   apply_design_system: z.object({ nodeId: nodeId.optional() }).passthrough(),
   audit_design_system: params,
   a11y_audit: z.object({ nodeId: nodeId.optional() }).passthrough(),
+  build_demo: z
+    .object({
+      name: z.string().trim().min(1),
+      steps: z.array(z.union([z.string().trim().min(1), z.object({}).passthrough()])).min(2),
+      overwrite: z.boolean().optional(),
+      holdMs: z.number().positive().max(60_000).optional(),
+      durationMs: z.number().nonnegative().max(10_000).optional(),
+      transition: z.string().trim().min(1).optional(),
+      description: z.string().optional(),
+    })
+    .passthrough(),
+  play_demo: z
+    .object({
+      name: z.string().trim().min(1),
+      speed: z.number().positive().max(20).optional(),
+      capture: z.boolean().optional(),
+      scale: z.number().positive().max(2).optional(),
+    })
+    .passthrough(),
+  get_demo_spec: z.object({ name: z.string().trim().min(1) }).passthrough(),
+  delete_demo: z
+    .object({
+      name: z.string().trim().min(1).optional(),
+      all: z.boolean().optional(),
+      force: z.boolean().optional(),
+      unwire: z.boolean().optional(),
+    })
+    .passthrough()
+    .refine((v) => v.name || v.all === true, {
+      message: "delete_demo requires name, or all: true.",
+    }),
+  list_demos: params,
   responsive_audit: z
     .object({
       nodeId,

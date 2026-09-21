@@ -21,30 +21,20 @@ export const PRO_URL = UPSTREAM_REPO_URL;
 export const EDITION: "free" | "pro" = "pro";
 
 /** MCP tools not implemented in this build yet. */
-export const PRO_TOOLS = ["figma_design_system", "figma_record"] as const;
+export const PRO_TOOLS = [] as const;
 
 /** figma_diagram kinds not implemented yet. */
 export const PRO_DIAGRAM_KINDS = ["journey", "persona", "usecase"] as const;
 
 /** Plugin operations (figma_read ops and figma.* write methods) that exist only in Pro. */
 export const PRO_OPERATIONS = [
-  "list_demos",
-  "get_demo_spec",
   "create_usecase",
   "create_journey",
   "create_persona",
-  "build_demo",
-  "delete_demo",
-  "play_demo",
 ] as const;
 
 /** figma.* sandbox methods that exist only in Pro (camelCase names agents call). */
 export const PRO_METHODS = [
-  "buildDemo",
-  "playDemo",
-  "deleteDemo",
-  "listDemos",
-  "getDemoSpec",
   "loadAvatar",
 ] as const;
 

@@ -56,6 +56,9 @@ export const READ_OPERATIONS = [
   "a11y_audit",
   // Will this survive a narrower viewport?
   "responsive_audit",
+  // Demos stored on the document.
+  "list_demos",
+  "get_demo_spec",
 ] as const;
 
 /** Write operations executed by the plugin. */
@@ -128,6 +131,10 @@ export const WRITE_OPERATIONS = [
   // apply re-themes existing work onto those tokens.
   "generate_design_system",
   "apply_design_system",
+  // Self-playing demos: wire the prototype, then drive the canvas.
+  "build_demo",
+  "play_demo",
+  "delete_demo",
 ] as const;
 
 export type ReadOperation = (typeof READ_OPERATIONS)[number];
@@ -341,6 +348,10 @@ export const OP_TIMEOUTS: Partial<Record<Operation, number>> = {
   a11y_audit: 90_000,
   // The simulate mode resizes and re-measures once per width.
   responsive_audit: 120_000,
+  // Every step holds for a beat; progress pings reset this per step, but the
+  // ceiling still has to cover a long walkthrough.
+  play_demo: 600_000,
+  build_demo: 120_000,
 };
 
 /** Batch requests are split into chunks of this size and streamed. */

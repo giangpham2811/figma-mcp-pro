@@ -180,6 +180,11 @@ const METHOD_TO_OP: Record<string, AnyOperation> = {
   a11yAudit: "a11y_audit",
   accessibilityAudit: "a11y_audit",
   responsiveAudit: "responsive_audit",
+  buildDemo: "build_demo",
+  playDemo: "play_demo",
+  listDemos: "list_demos",
+  getDemoSpec: "get_demo_spec",
+  deleteDemo: "delete_demo",
 };
 
 /**
