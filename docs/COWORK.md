@@ -1,7 +1,7 @@
 # Cowork — phần kỹ thuật
 
 Dành cho người **dựng và vận hành**. Người dùng cuối chỉ cần
-[BAT-DAU.md](./BAT-DAU.md), ở đó không có dòng lệnh nào.
+[README](../README.md), ở đó không có dòng lệnh nào.
 
 ## Vì sao phải có relay
 
@@ -33,7 +33,7 @@ https://figjam-pro-relay.giangpm.workers.dev/mcp
 phát cho cả công ty trước được. Sau đó mỗi người chỉ cần mở plugin và đọc
 mã 6 ký tự cho Claude.
 
-Chi tiết cho người dùng: [BAT-DAU.md](./BAT-DAU.md).
+Chi tiết cho người dùng: [README](../README.md).
 
 ### Vì sao là mã chứ không phải URL riêng
 

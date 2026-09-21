@@ -1,168 +1,196 @@
-# figma-mcp-pro
+# Vẽ sơ đồ lên Figma bằng cách nói chuyện với Claude
 
-**Cho AI agent đọc và vẽ lên canvas Figma — FigJam board hoặc Design file.**
-Bạn nói bằng tiếng Việt, nó chọn loại diagram, **soát model trước khi vẽ**,
-rồi vẽ và báo lại những gì soát ra.
+Bạn nói bằng tiếng Việt:
 
-Thứ đáng giá không phải cái hình. Là những câu nó hỏi ngược lại bạn:
+> *"Vẽ giúp tôi luồng đăng nhập, có cả trường hợp nhập sai mật khẩu."*
 
-> *Use case `xuat_bao_cao` không có actor nào và không gì include nó, nên
-> không ai khởi động được. Hoặc nó ngoài phạm vi, hoặc thiếu một actor.*
+Claude vẽ thẳng lên file Figma bạn đang mở.
+
+Nhưng điểm chính không phải cái hình — hình thì bạn tự vẽ cũng được. Điểm
+chính là **nó đọc lại bản vẽ và nói cho bạn nghe chỗ nào chưa ổn**:
+
+> *"Câu hỏi 'Đúng mật khẩu?' chỉ có một đường đi ra. Nếu sai thì sao?"*
 >
-> *2 giai đoạn không có điểm chạm: `can`, `nhap`. Hoặc người dùng tự xoay xở
-> ở đó — đáng nói ra cho rõ — hoặc sản phẩm có lỗ hổng đúng chỗ họ cần.*
+> *"Màn hình 'Quên mật khẩu' không có đường nào dẫn tới. Thừa, hay thiếu
+> một bước?"*
 
-Đó là những điều một bản vẽ tay không bao giờ nói với bạn.
+Đó là những câu một người rà soát kỹ tính sẽ hỏi bạn trong buổi họp — khác
+là nó hỏi ngay lúc bạn đang vẽ, chứ không phải hai tuần sau.
 
 ---
 
-## Bắt đầu
+## Cần chuẩn bị
 
-### Claude Cowork — một đường dẫn, một mã
+1. **Figma bản cài trên máy** — không phải Figma mở trong trình duyệt.
+   Tải ở [figma.com/downloads](https://www.figma.com/downloads/).
+2. **Quyền sửa** file bạn định vẽ vào. File người khác gửi cho xem thôi thì
+   không chạy được — xem mục *Gặp trục trặc*.
+3. **Claude Cowork** hoặc **Claude Code**.
 
-1. **Một lần duy nhất**: Cowork → Settings → Connectors → Add custom
-   connector → dán `https://figjam-pro-relay.giangpm.workers.dev/mcp`.
-   Đường dẫn này dùng chung cho cả nhóm, không bao giờ đổi.
-2. **Mỗi lần dùng**: mở Figma trên máy → chạy plugin → đọc mã 6 ký tự cho
-   Claude (*"mã K7P2WQ"*). Giữ cửa sổ plugin mở.
+---
 
-### Claude Code — có 6 slash command
+## Cài — làm một lần
 
-```bash
-npm install && npm run build
-npm run install:figjam     # đăng ký MCP user scope + cài slash command
-```
+### Bước 1. Cài plugin vào Figma
 
-Khởi động lại Claude Code. Trong Figma **Desktop**: Plugins → Development →
-Import plugin from manifest… → `plugin/manifest.json`, chạy plugin và **giữ
-cửa sổ plugin mở** — nó là cây cầu.
+Người phụ trách kỹ thuật ở công ty bạn sẽ gửi plugin, hoặc chỉ cho bạn cài
+từ Figma. Nếu chưa có, nhờ họ đọc [docs/HUONG-DAN.md](docs/HUONG-DAN.md).
 
-> File phải là file bạn **có quyền sửa**. Figma không cho chạy plugin trên
-> file chỉ-xem, kể cả plugin thuần đọc. File người khác chia sẻ chỉ-xem:
-> *Duplicate to your drafts* rồi làm trên bản của bạn.
+### Bước 2. Nối Claude với Figma
 
-### Đọc gì tiếp
+**Nếu dùng Cowork:** mở **Settings → Connectors → Add custom connector**,
+điền hai ô:
 
-| Bạn là | Đọc |
+| Ô | Điền |
 |---|---|
-| Chỉ muốn **dùng** | **[BAT-DAU.md](docs/BAT-DAU.md)** — không một dòng lệnh nào |
-| **Cài** cho cả nhóm | [HUONG-DAN.md](docs/HUONG-DAN.md) |
-| Dựng **relay** cho Cowork | [COWORK.md](docs/COWORK.md) |
-| Muốn tra **tham số** từng tool | [TOOLS.md](docs/TOOLS.md) |
-| Hỏi *vì sao không dùng Figma MCP chính thức* | [FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md) |
+| Name | `Figma` |
+| MCP server URL | đường dẫn người phụ trách kỹ thuật gửi bạn |
+
+Đường dẫn đó **dùng chung cho cả nhóm và không bao giờ đổi**. Dán một lần,
+không phải đụng lại.
+
+**Nếu dùng Claude Code:** người phụ trách kỹ thuật cài giúp bằng một lệnh.
+Bạn không phải làm gì ở bước này.
 
 ---
 
-## Sáu slash command
+## Dùng — mỗi lần
 
-Chia theo **câu hỏi bạn đang có**, không theo loại diagram — bạn không biết
-mình cần `activity` hay `state`, bạn biết mình cần vẽ một quy trình.
+**1.** Mở Figma trên máy, mở file bạn muốn vẽ vào.
 
-| Command | Dùng khi |
+**2.** Menu **Plugins** → chọn **Reqwise Figma MCP**.
+
+Một ô nhỏ hiện ra bên phải, trong đó có **mã 6 ký tự** kiểu `K7P2WQ`.
+
+> **Để nguyên ô đó, đừng đóng.** Đây là chỗ hay nhầm nhất. Đóng nó là mất
+> kết nối, giống rút dây mạng. Không hỏng gì, chỉ cần mở lại.
+
+**3.** Quay sang Claude, nói:
+
+> mã K7P2WQ
+
+**4.** Rồi nói việc bạn cần, bình thường:
+
+```
+Vẽ luồng đặt hàng lên board này giúp tôi
+
+Vẽ sơ đồ các trang của app, dựa theo file spec tôi vừa gửi
+
+Xem lại mấy bản vẽ trên board xem có chỗ nào mâu thuẫn nhau không
+```
+
+Mỗi cuộc trò chuyện mới thì đọc lại mã một lần — cuộc mới chưa biết bạn
+đang mở file nào.
+
+### Nếu dùng Claude Code: có câu lệnh tắt
+
+| Gõ | Khi bạn muốn |
 |---|---|
-| `/figjam-flow` | luồng màn hình, quy trình, vòng đời trạng thái |
-| `/figjam-scope` | phạm vi hệ thống, cây trang, story map |
-| `/figjam-user` | persona, journey, điểm đau |
-| `/figjam-data` | ERD — bảng, khoá, quan hệ |
-| `/figjam-check` | **soát, không vẽ** — tìm chỗ các bản vẽ mâu thuẫn nhau |
-| `/figjam-pro` | chưa biết mình cần gì |
+| `/figjam-flow` | vẽ luồng, quy trình, các bước |
+| `/figjam-scope` | vẽ phạm vi: hệ thống làm được gì, gồm những trang nào |
+| `/figjam-user` | vẽ chân dung người dùng, hành trình của họ |
+| `/figjam-data` | vẽ sơ đồ dữ liệu: bảng, quan hệ |
+| `/figjam-check` | **chỉ soát, không vẽ** — tìm chỗ sai trong bản vẽ có sẵn |
+| `/figjam-pro` | không chắc mình cần gì |
 
 ```
-/figjam-flow vẽ luồng đăng nhập, có cả trường hợp sai mật khẩu
-/figjam-scope vẽ use case cho app này theo template trên board
-/figjam-check soát xem các bản vẽ trên trang có mâu thuẫn nhau không
+/figjam-flow vẽ luồng thanh toán, có cả lúc thẻ bị từ chối
 ```
-
-`/figjam-check` thường là cái đáng chạy nhất trên board đã có sẵn nhiều bản
-vẽ: mỗi frame **nhớ model đã tạo ra nó**, nên nó hỏi được câu mà không
-checker đơn lẻ nào trả lời — *sequence retry ba lần trong khi state machine
-chặn ở `n < 5`*.
 
 ---
 
-## Sáu tool
+## Vẽ được những gì
 
-| Tool | Làm gì |
+| Bạn muốn | Nói thế nào |
 |---|---|
-| `figma_status` | Chẩn đoán. Trả về `hints` là danh sách việc cần làm, không phải một chữ true/false. Gọi đầu tiên. |
-| `figma_read` | Đọc canvas, trả lời đã nén và lọc: `layout_audit` chỉ trả node **có vấn đề**, `screenshot` là image block thật chứ không phải base64 nhét trong text. |
-| `figma_write` | Chạy JavaScript trong sandbox `vm` với proxy `figma.*`. `batch` gộp 200 thao tác vào một vòng. 96 op: vẽ, component, variant, token, design system, audit, demo. |
-| `figma_diagram` | Vẽ **nine** diagram kinds từ model **bạn** suy ra, mỗi loại kèm phát hiện về *nội dung* chứ không phải về bản vẽ. `activity` quy trình có swimlane · `sequence` trao đổi theo thời gian · `state` vòng đời một thực thể · `erd` mô hình dữ liệu · `userflow` màn hình người dùng đi qua · `sitemap` sản phẩm gồm những trang nào · `usecase` hệ thống làm gì cho ai · `journey` trải nghiệm và cảm xúc · `persona` chân dung người dùng. Viết bằng compact `text` form rẻ hơn ~ba lần, vẽ cả bộ trong một lời gọi, và **sửa** bằng `update` + `patch` thay vì vẽ lại từ đầu. |
-| `figma_rules` | Một lời gọi ra bảng luật design system: styles + variables + components, dạng markdown. Đọc trước khi vẽ để tái dùng token thay vì hardcode. |
-| `figma_docs` | Tài liệu theo yêu cầu: `rules` \| `layout` \| `api` \| `tokens` \| `icons` \| `recipes` \| `style` \| `userflow` \| `activity` \| `erd` \| `sequence` \| `sitemap` \| `state` \| `persona` \| `journey` \| `usecase`. |
+| Người dùng đi qua những màn hình nào | *"vẽ luồng màn hình khi đăng ký"* |
+| Ai làm bước nào trong quy trình | *"vẽ quy trình duyệt đơn, ai duyệt bước nào"* |
+| Một đơn hàng đi qua những trạng thái nào | *"vẽ vòng đời đơn hàng"* |
+| Hệ thống làm được gì, cho ai | *"vẽ use case cho app này"* |
+| App gồm những trang nào | *"vẽ sơ đồ trang của sản phẩm"* |
+| Người dùng trải nghiệm ra sao, khó chịu ở đâu | *"vẽ hành trình người dùng khi chờ mã OTP"* |
+| Chân dung người dùng chính | *"vẽ persona cho khách hàng doanh nghiệp"* |
+| Dữ liệu gồm bảng nào, liên quan ra sao | *"vẽ sơ đồ dữ liệu phần đặt hàng"* |
+
+Có một loại chỉ vẽ được trong **file thiết kế**, không vẽ được trên
+**board**: sơ đồ trao đổi theo thời gian. Lý do là board không giữ được thứ
+tự trước-sau của các đường nối. Claude sẽ nói cho bạn biết nếu gặp.
 
 ---
 
-## FigJam và Design khác nhau chỗ nào
+## Ba điều nên biết trước
 
-| | FigJam board | Design file |
-|---|---|---|
-| 8 loại diagram | ✅ | ✅ |
-| `sequence` | ❌ | ✅ |
-| Đường nối | **Connector thật** — kéo hộp là đường tự đi theo | Vector + bộ định tuyến |
-| Hộp nhiều ngăn | Thành dòng chữ | Đầy đủ |
-| Component, variable, design system | ❌ | ✅ |
-| a11y / responsive audit | ❌ | ✅ |
+**Nó không bịa.** Thiếu thông tin thì nó hỏi bạn, hoặc để trống và ghi chú.
+Một ô trống trên bản vẽ là **phát hiện**, không phải lỗi — đừng bảo nó
+"điền đại cho đầy".
 
-`sequence` bị chặn trên board **có lý do**, không phải thiếu tính năng: trục
-dọc của nó là **thời gian**, mà connector FigJam bám vào node chứ không bám
-điểm trên lifeline — mọi message giữa cùng một cặp sẽ chồng lên một đường và
-thứ tự biến mất. Nó vẫn *trông giống* sequence diagram, và đó là điều tệ hơn
-một lỗi.
+**Nó soát trước khi vẽ.** Nếu những gì bạn mô tả có mâu thuẫn, nó dừng lại
+và nói ra, thay vì vẽ một bức tranh trông đẹp mà sai.
+
+**Mã 6 ký tự là chìa khoá vào file bạn đang mở.** Nó sống 12 tiếng. Đừng
+đọc nó trong buổi họp có người ngoài; lỡ rồi thì mở plugin → *Cài đặt nâng
+cao* → **Lấy đường dẫn mới**.
 
 ---
 
-## Kiến trúc
+## Gặp trục trặc
 
-```
-Claude Code   ──stdio──►  MCP server (máy bạn)        ──WS──►  Plugin  ──►  Figma
-Claude Cowork ──HTTPS──►  Worker + Durable Object    ◄──WS──   Plugin  ──►  Figma
-```
+| Chuyện xảy ra | Làm gì |
+|---|---|
+| Claude bảo *"không thấy plugin nào"* | Ô plugin đã đóng, hoặc chưa chạy plugin sau khi mở Figma. Chạy lại và để đó |
+| Không thấy plugin trong menu Plugins | Bạn đang dùng Figma trong trình duyệt. Phải dùng bản cài trên máy |
+| Bấm chạy plugin nhưng không có gì xảy ra | File này bạn chỉ được xem. Chuột phải tên file → **Duplicate to your drafts**, rồi làm trên bản của bạn |
+| Claude bảo cần *"Design file"* | Việc đó chỉ làm được trong file thiết kế, không làm được trên board |
+| Nhiều cửa sổ Figma đang mở, vẽ nhầm file | Nói rõ tên file: *"vẽ vào file Thiết kế App"* |
+| Vẽ xong không thấy đâu | Nhấn **Shift + 1** để thu toàn cảnh — nó đặt bản vẽ ở chỗ trống, có thể ngoài tầm nhìn |
+| Mã báo hết hạn | Mở plugin, đọc mã mới |
 
-Plugin là WebSocket **client** nên nó gọi ra ngoài — đó là thứ khiến cả hai
-đường dùng chung một plugin. Cowork chạy trên đám mây, không thấy máy bạn,
-nên hai bên gặp nhau ở một relay công khai thay vì ở `localhost`.
-
-Mọi thứ đi qua **Figma Plugin API** (miễn phí, chạy trong app), không qua
-Figma MCP chính thức (bán theo seat, có hạn mức). Đo thật: đọc một board sản
-phẩm qua Figma MCP trả về **632.022 ký tự**; vẽ một diagram qua đường này tốn
-**~1,3 KB vào / ~250 B ra**. Chênh lệch không đến từ nén giỏi hơn — kết quả
-của việc vẽ là *bức tranh trên canvas*, không phải mô tả bức tranh trong
-context.
+Vẫn không được thì bảo Claude: *"kiểm tra kết nối giúp tôi"*. Nó chạy chẩn
+đoán và nói đúng chỗ đang kẹt.
 
 ---
 
-## Dự án này là gì
+## Tài khoản Figma của ai?
 
-Fork của **[reqwise-figma-mcp](https://github.com/hoangpm96/reqwise-figma-mcp)**
-(Hoang Phan, MIT) — bridge, plugin, sáu diagram gốc và toàn bộ lớp
-safe-drawing là của họ. Xem [`LICENSE`](LICENSE) và [`NOTICE`](NOTICE).
+**Của bạn.** Plugin chạy trong Figma trên máy bạn, dưới tài khoản Figma bạn
+đang đăng nhập. Nó vẽ được đúng những gì **bạn** vẽ được — không hơn.
 
-Upstream bán lớp authoring thành một sản phẩm thương mại riêng. Fork này tự
-viết lại lớp đó dựa trên Figma Plugin API công khai, từ danh sách tính năng
-đã công bố. Không dùng dòng code thương mại nào của upstream.
+- Không ai phải dùng chung tài khoản Figma.
+- Không có mật khẩu hay khoá Figma nào được lưu ở đâu khác ngoài máy bạn.
+- Mỗi người một kết nối riêng, không lẫn vào nhau.
+- Người dựng hệ thống **không** vào được file Figma của bạn qua công cụ này.
 
-Đã bổ sung: component authoring (18 op), design system generator (10 visual
-style × 60 component), `a11y_audit`, `responsive_audit`, self-playing demo,
-ba diagram kind `usecase` / `journey` / `persona`, `loadAvatar`, hỗ trợ
-FigJam, và relay cho Cowork. `src/shared/editions.ts` là backlog và hiện đã
-rỗng.
+Một điều nên biết cho đúng: nếu công ty dùng chung một relay, thì **nội
+dung bản vẽ** (tên màn hình, nhãn các bước) có đi qua máy chủ relay đó trên
+đường tới Figma. Nó không lưu lại, nhưng nó có đi qua. Với dự án nhạy cảm,
+nói với người phụ trách kỹ thuật để họ dựng relay riêng, hoặc dùng bản chạy
+hoàn toàn trên máy (Claude Code).
 
 ---
 
-## Phát triển
+## Nó không làm được gì
 
-```bash
-npm run build       # server → dist/, plugin → plugin/code.js
-npm run typecheck
-npm test            # ~1545 test
-npm run verify      # typecheck + test
-```
+- **Không vẽ vào file bạn chỉ có quyền xem.** Copy sang bản của bạn.
+- **Phải mở Figma trên máy.** Tắt Figma là dừng.
+- **Không đọc được file bạn chưa mở.**
+- **Không sao chép hình dạng từ mẫu có sẵn.** Bảo *"vẽ theo template"* thì
+  nó học **cách đặt tên** và **cách dùng từ** của nhóm bạn; còn hình khối
+  và bố cục do nó tự tính.
+- **Nó không biết bản vẽ của bạn có ĐÚNG không**, chỉ biết bản vẽ có **mạch
+  lạc** không. Một sơ đồ hoàn hảo về một sản phẩm sai vẫn qua hết mọi kiểm
+  tra. Phần đó vẫn là việc của bạn.
 
-Sửa code rồi **phải làm đủ ba bước**: `npm run build` → khởi động lại Claude
-Code → chạy lại plugin trong Figma. Hai nửa cũ đi lệch nhau độc lập, và
-thiếu bước nào cũng ra cùng một triệu chứng: *"sửa rồi mà không thấy gì
-đổi"*.
+---
 
-Đọc [`ARCHITECTURE.md`](ARCHITECTURE.md) trước khi sửa phần bridge hay
-diagram — nó ghi lại những lỗi đã phải trả giá mới tìm ra.
+## Dành cho người kỹ thuật
+
+| Việc | Đọc |
+|---|---|
+| Cài cho cả nhóm | [docs/HUONG-DAN.md](docs/HUONG-DAN.md) |
+| Dựng relay cho Cowork | [docs/COWORK.md](docs/COWORK.md) |
+| Tra tham số từng tool | [docs/TOOLS.md](docs/TOOLS.md) |
+| Vì sao không dùng Figma MCP chính thức | [docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md](docs/FIGMA-MCP-VS-PLUGIN-BRIDGE.md) |
+| Sửa code | [ARCHITECTURE.md](ARCHITECTURE.md) |
+
+Fork của [reqwise-figma-mcp](https://github.com/hoangpm96/reqwise-figma-mcp)
+(Hoang Phan, MIT) — xem [`LICENSE`](LICENSE) và [`NOTICE`](NOTICE).

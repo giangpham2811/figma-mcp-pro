@@ -27,8 +27,22 @@ const read = (rel: string): string => readFileSync(join(ROOT, rel), "utf8");
 
 const TOOL_NAMES = TOOLS.map((t) => t.name).sort();
 const tools = read("docs/TOOLS.md");
-const readme = read("README.md");
 const arch = read("ARCHITECTURE.md");
+
+/**
+ * README is NOT checked here any more, and that is deliberate.
+ *
+ * It used to carry a tool table and a diagram-kind count, so it was a
+ * reference document and had to be kept honest like one. It is now the
+ * install page a non-technical user lands on: no tool names, no `type`
+ * values, nothing for this suite to verify. Asserting a tool table against
+ * a page that should not have one would push the next author to add one
+ * back, which is the opposite of what the split was for.
+ *
+ * The claims did not disappear — they moved. docs/TOOLS.md and
+ * ARCHITECTURE.md are the reference documents, and both are still checked
+ * below, so a tool renamed or a kind added still fails a test.
+ */
 
 /** Tool names that once existed. Naming one as callable is the bug. */
 const RETIRED = ["figma_userflow", "figma_flowchart"];
@@ -44,8 +58,7 @@ describe("the shipped docs", () => {
     expect(headings).toEqual(TOOL_NAMES);
   });
 
-  it("lists every tool — and only the tools that exist — in the README and ARCHITECTURE tables", () => {
-    expect(tableRows(readme)).toEqual(TOOL_NAMES);
+  it("lists every tool — and only the tools that exist — in the ARCHITECTURE table", () => {
     expect(tableRows(arch)).toEqual(TOOL_NAMES);
   });
 
@@ -67,7 +80,6 @@ describe("the shipped docs", () => {
     // The cost is that a NEW sentence claiming a count is not covered until
     // somebody adds it here, which is the honest trade.
     const CLAIMS: Array<[string, string, string]> = [
-      ["README.md", readme, `**${n}** diagram kinds`],
       ["ARCHITECTURE.md", arch, `${n[0]!.toUpperCase()}${n.slice(1)} kinds behind one \`type\``],
       [
         "ARCHITECTURE.md",
@@ -88,7 +100,6 @@ describe("the shipped docs", () => {
     const kinds = (tool.inputSchema as { properties?: { type?: { enum?: string[] } } })
       .properties?.type?.enum ?? [];
     for (const [rel, body] of [
-      ["README.md", readme],
       ["ARCHITECTURE.md", arch],
       ["docs/TOOLS.md", tools],
     ] as const) {
@@ -104,7 +115,6 @@ describe("the shipped docs", () => {
     // `sitemap`; a reader following either one asks for a section that is
     // there and never learns about the ones that are.
     for (const [rel, body] of [
-      ["README.md", readme],
       ["ARCHITECTURE.md", arch],
     ] as const) {
       for (const name of DOC_SECTION_NAMES) {
@@ -116,7 +126,6 @@ describe("the shipped docs", () => {
   it("never presents a retired tool as one to call", () => {
     for (const [rel, body] of [
       ["docs/TOOLS.md", tools],
-      ["README.md", readme],
       ["ARCHITECTURE.md", arch],
       ["docs/RECIPES.md", read("docs/RECIPES.md")],
       ["docs/SETUP.md", read("docs/SETUP.md")],
@@ -156,7 +165,6 @@ describe("the shipped docs", () => {
   it("has no intra-page anchor link that points at a heading it does not have", () => {
     for (const [rel, body] of [
       ["docs/TOOLS.md", tools],
-      ["README.md", readme],
       ["ARCHITECTURE.md", arch],
       ["docs/RECIPES.md", read("docs/RECIPES.md")],
     ] as const) {

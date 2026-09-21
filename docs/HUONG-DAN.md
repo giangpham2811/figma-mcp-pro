@@ -2,8 +2,8 @@
 
 Dành cho người **cài công cụ này cho nhóm**. Làm một lần.
 
-Nếu bạn chỉ muốn *dùng*, đọc [BAT-DAU.md](./BAT-DAU.md) — ở đó không có
-dòng lệnh nào.
+Nếu bạn chỉ muốn *dùng*, đọc [README](../README.md) — ở đó không có dòng
+lệnh nào.
 
 ---
 
