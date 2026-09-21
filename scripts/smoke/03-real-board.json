@@ -1,0 +1,28 @@
+[
+ {
+  "name": "figma_diagram",
+  "arguments": {
+   "type": "usecase",
+   "title": "Second Phone Number — phạm vi hệ thống",
+   "subtitle": "Dựng từ 9 feature trên board Overview",
+   "text": "actor nguoi_dung \"Người dùng\" primary\nactor nguoi_lien_he \"Người gọi / nhắn đến\" secondary\nactor dich_vu \"Dịch vụ bên thứ ba\" system\nactor store \"Apple / Google Store\" system\n\nuc dang_nhap \"Đăng nhập và kích hoạt máy\"\n  by: nguoi_dung\nuc chon_so \"Tìm và chọn số ảo\"\n  by: nguoi_dung\n  includes: chon_muc_dich\nuc chon_muc_dich \"Chọn mục đích dùng số\"\nuc nhan_so \"Nhận số và kích hoạt\"\n  by: nguoi_dung\n  includes: mua_goi\nuc mua_goi \"Mua gói cho một số\"\n  by: nguoi_dung\n  includes: thanh_toan\nuc thanh_toan \"Thanh toán qua Store\"\n  by: store\nuc nhan_tin \"Nhắn tin bằng số ảo\"\n  by: nguoi_dung\n  by: nguoi_lien_he\n  includes: tru_credit\nuc goi_thoai \"Gọi thoại bằng số ảo\"\n  by: nguoi_dung\n  by: nguoi_lien_he\n  includes: tru_credit\nuc tru_credit \"Trừ credit cho chiều đi\"\nuc nap_credit \"Nạp thêm credit\"\n  by: nguoi_dung\n  extends: nhan_tin\n  extends: goi_thoai\nuc nhan_otp \"Nhận mã xác thực\"\n  by: dich_vu\n  by: nguoi_dung\nuc quan_ly_so \"Quản lý vòng đời số\"\n  by: nguoi_dung\nuc danh_ba \"Quản lý danh bạ và chặn số\"\n  by: nguoi_dung\n",
+   "options": {
+    "dryRun": true,
+    "system": "Second Phone Number app"
+   }
+  }
+ },
+ {
+  "name": "figma_diagram",
+  "arguments": {
+   "type": "journey",
+   "title": "Nhận mã xác thực bằng số ảo",
+   "subtitle": "FLOW C04 + C15, nhìn từ phía người dùng",
+   "persona": "nguoi_dung",
+   "text": "stage can \"Cần đăng ký một dịch vụ\" feeling: 0\n  does: Ngại đưa số thật cho dịch vụ lạ\n  thinks: Đưa số này rồi có bị spam không?\nstage chon \"Chọn số cho mục đích OTP\" feeling: 1\n  does: Chọn mục đích Verify OTP\n  does: Xem danh sách 5-10 số\n  touch: Purpose Selection Screen\n  touch: OTP Number List Screen\n  thinks: Số nào cũng được, miễn nhận được mã\nstage nhap \"Nhập số ảo vào dịch vụ\" feeling: 0\n  does: Gõ số ảo vào form đăng ký của dịch vụ\nstage cho \"Chờ tin OTP về\" feeling: -1\n  does: Mở app, nhìn tab Messages\n  touch: Messages Tab\n  thinks: Bao lâu thì về? Có phải mình gõ nhầm số?\n  pain: Không biết đang chờ hay đã hỏng\n  opp: Hiện trạng thái đang chờ mã trên thẻ số\nstage khong_ve \"Mã không về\" feeling: -2\n  does: Bấm gửi lại ở dịch vụ, vẫn không thấy\n  touch: Số Selection Screen khi xin cấp số mới\n  pain: Không rõ lỗi ở dịch vụ hay ở số ảo\n  pain: Hết lượt đổi mã thì không còn đường nào\n  opp: Nói rõ số này có nhận được OTP của dịch vụ đó không\n  opp: Gợi ý đổi số ngay trong màn chờ\nstage xong \"Verify thành công\" feeling: 2\n  does: Dán mã vào dịch vụ\n  touch: Message Thread Screen\n",
+   "options": {
+    "dryRun": true
+   }
+  }
+ }
+]

@@ -65,6 +65,30 @@ nhờ. Hỏi "cái nút này màu gì" cũng phải trả tiền cho cả cái m
 một chiều**: lấy một frame, sinh ra component. Với mục đích đó thì trả cả cây
 là đúng. Nó chỉ đắt khi bạn dùng nó như một API đọc-ghi tương tác.
 
+### Số đo thật, 21/09/2026
+
+Đọc một FigJam board sản phẩm thật (`Second Phone Number Overview`: 9 feature,
+~130 flow, khoảng 1.400 shape) bằng `get_figjam` của Figma MCP chính thức:
+
+| | |
+|---|---|
+| Kết quả trả về | **632.022 ký tự / 5.547 dòng** |
+| Vượt ngưỡng context | có — phải ghi ra file rồi `grep`, không đọc thẳng được |
+| Số lượt gọi | 1 (nhưng gần như không dùng được kết quả nếu không lọc) |
+
+Cùng phiên đó, vẽ một use case diagram 4 actor / 13 use case và một journey
+map 6 giai đoạn bằng kiến trúc plugin-bridge:
+
+| | request | response |
+|---|---|---|
+| Use case diagram | 1.335 B | **251 B** |
+| Journey map | 1.311 B | **281 B** |
+
+Response chỉ có `stats` và các finding, vì bản vẽ đi thẳng lên canvas chứ
+không quay ngược về context. Chênh lệch ba bậc độ lớn, và nó không đến từ
+việc nén giỏi hơn — nó đến từ chỗ **kết quả của việc vẽ là bức tranh trên
+canvas, không phải mô tả bức tranh trong context**.
+
 ---
 
 ## 2. Bề mặt thứ hai: Figma Plugin API
