@@ -253,12 +253,17 @@
   <div class="cowork" id="cowork">
     <div class="cowork-body" id="coworkBody">
       <p class="cowork-hint" id="coworkHint">
-        Dán đường dẫn này vào Cowork → Settings → Connectors → Add custom connector.
+        Nói mã này với Claude: <em>"mã ABC123"</em>. Chỉ cần một lần mỗi cuộc trò chuyện.
       </p>
+      <div class="pair-code" id="shortCode">······</div>
       <div class="cowork-url">
         <input id="mcpUrlTop" type="text" readonly spellcheck="false" placeholder="Đang lấy đường dẫn…">
         <button id="copyUrlTop" class="primary">Chép</button>
       </div>
+      <p class="cowork-hint" id="urlHint">
+        Lần đầu: dán đường dẫn trên vào Cowork → Settings → Connectors → Add custom connector.
+        Đường dẫn này dùng chung cho cả nhóm và không đổi.
+      </p>
       <details class="cowork-adv">
         <summary>Cài đặt nâng cao</summary>
         <label class="cowork-field">
@@ -448,6 +453,7 @@
     pairedEmail: document.getElementById("pairedEmail"),
     mcpUrl: document.getElementById("mcpUrl"),
     copyUrl: document.getElementById("copyUrl"),
+    shortCode: document.getElementById("shortCode"),
     mcpUrlTop: document.getElementById("mcpUrlTop"),
     copyUrlTop: document.getElementById("copyUrlTop"),
     activityEmpty: document.getElementById("activity-empty"),
@@ -902,7 +908,11 @@
     if (paired) {
       el.relayHost.value = relay.host;
       el.mcpUrl.value = mcpUrl();
-      el.mcpUrlTop.value = mcpUrl();
+      // The shared URL, not the per-room one: it is the same string for
+      // everybody, so an admin can hand it out in advance and nobody has to
+      // copy 80 characters out of Figma. The room is named by the code.
+      el.mcpUrlTop.value = relay.host + "/mcp";
+      el.shortCode.textContent = relay.code || "······";
       el.pairedEmail.textContent = relay.email ? " (" + relay.email + ")" : "";
     }
     // The top field is the whole feature; it should never be the thing the
@@ -981,7 +991,7 @@
         // Open relay: the room is usable the moment it is issued, so the
         // URL goes on screen and there is nothing else to do.
         if (!body.verified) {
-          relay = { host: host, roomId: body.roomId, email: "" };
+          relay = { host: host, roomId: body.roomId, email: "", code: body.code || "" };
           toMain({ kind: "save-relay", relay: relay });
           renderCowork();
           backoff = BACKOFF_MIN;

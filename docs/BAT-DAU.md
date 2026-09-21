@@ -45,32 +45,38 @@ Nếu công ty bạn chưa cài công cụ này, nhờ người phụ trách k�
 
 ### Lần đầu (khoảng một phút)
 
-**1.** Mở Figma trên máy, mở file bạn muốn vẽ vào.
-
-**2.** Menu **Plugins** → chọn **Reqwise Figma MCP**.
-
-Một ô nhỏ hiện ra bên phải. **Cứ để nguyên đó, đừng đóng.** Đây là chỗ hay
-nhầm nhất: đóng ô đó là mất kết nối, giống như rút dây mạng.
-
-**3.** Trong ô đó, phần **Claude Cowork** đã có sẵn một dòng chữ dài. Bấm
-nút **Chép** bên cạnh.
-
-**4.** Mở Claude Cowork → **Settings** → **Connectors** → **Add custom
-connector**.
-
-**5.** Điền hai ô:
+**1.** Mở Cowork → **Settings** → **Connectors** → **Add custom connector**.
+Điền hai ô:
 
 | Ô | Điền gì |
 |---|---|
-| Name | `Figma` (hay tên nào bạn thích) |
-| MCP server URL | Dán dòng vừa chép |
+| Name | `Figma` |
+| MCP server URL | `https://figjam-pro-relay.giangpm.workers.dev/mcp` |
 
-Bấm lưu. Xong.
+Đường dẫn này **dùng chung cho cả nhóm và không bao giờ đổi**. Nếu người
+phụ trách kỹ thuật đã gửi bạn đường dẫn khác thì dùng của họ.
+
+**2.** Mở Figma trên máy, mở file bạn muốn vẽ vào.
+
+**3.** Menu **Plugins** → chọn **Reqwise Figma MCP**.
+
+Một ô nhỏ hiện ra bên phải, trong đó có **một mã 6 ký tự** kiểu `K7P2WQ`.
+**Cứ để ô đó nguyên, đừng đóng** — đây là chỗ hay nhầm nhất. Đóng nó là mất
+kết nối, giống rút dây mạng.
+
+**4.** Quay sang Claude, nói:
+
+> mã K7P2WQ
+
+Xong. Claude nhớ mã đó trong suốt cuộc trò chuyện.
 
 ### Những lần sau
 
-Chỉ cần: mở Figma → chạy plugin → **để ô plugin mở**. Không phải làm lại
-bước nào.
+Mở Figma → chạy plugin → đọc mã cho Claude. **Không phải đụng vào phần
+Settings của Cowork nữa** — đường dẫn đã lưu rồi.
+
+Mỗi cuộc trò chuyện mới thì đọc lại mã một lần, vì cuộc trò chuyện mới chưa
+biết bạn đang mở file nào.
 
 ### Rồi nói chuyện bình thường
 
@@ -135,10 +141,12 @@ Một ô trống trên bản vẽ là **phát hiện**, không phải lỗi. Đ�
 **Nó soát trước khi vẽ.** Nếu model bạn mô tả có mâu thuẫn, nó dừng lại và
 nói ra trước, thay vì vẽ một bức tranh trông đẹp mà sai.
 
-**Đường dẫn bạn dán vào Cowork là chìa khoá.** Ai có nó cũng vẽ được lên
-file Figma bạn đang mở. Đừng gửi nó vào nhóm chat hay dán lên tài liệu
-chung. Lỡ lộ thì mở plugin → *Cài đặt nâng cao* → **Lấy đường dẫn mới**,
-đường cũ hết tác dụng ngay.
+**Mã 6 ký tự là chìa khoá vào file Figma bạn đang mở.** Nó sống 12 tiếng.
+Đừng đọc nó trong buổi họp có người ngoài, và nếu lỡ thì mở plugin → *Cài
+đặt nâng cao* → **Lấy đường dẫn mới** để đổi mã.
+
+Riêng đường dẫn dán vào Settings thì dùng chung cho cả nhóm — nó không tự
+nó mở được file nào.
 
 **Ô plugin phải luôn mở.** Đóng nó là mất kết nối. Không hỏng gì cả, chỉ cần
 mở lại.

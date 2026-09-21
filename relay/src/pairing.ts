@@ -38,6 +38,16 @@ export interface Pair {
 /** Codes expire fast: an unclaimed one is either abandoned or being guessed. */
 export const PAIR_TTL_MS = 10 * 60 * 1000;
 
+/**
+ * How long a plain pairing code stays usable when there is no Access step.
+ *
+ * Longer than the verified one — twelve hours, a working day — because
+ * here the code is not protecting anything a login already protected. It is
+ * a convenience so somebody can open the plugin in the morning and pair
+ * whenever they get round to it, and re-pairing costs one button press.
+ */
+export const CODE_TTL_MS = 12 * 60 * 60 * 1000;
+
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 /**

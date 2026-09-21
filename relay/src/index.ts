@@ -53,7 +53,15 @@ import { validateOperation } from "../../src/server/validate.js";
 import { getDoc, DOC_SECTION_NAMES } from "../../src/server/docs-content/index.js";
 import { READ_OPERATIONS, type AnyOperation } from "../../src/shared/protocol.js";
 
-import { humanCode, secret, requireAccess, pairedPage, PAIR_TTL_MS, type Pair } from "./pairing.js";
+import {
+  humanCode,
+  secret,
+  requireAccess,
+  pairedPage,
+  PAIR_TTL_MS,
+  CODE_TTL_MS,
+  type Pair,
+} from "./pairing.js";
 
 export { FigmaRoom } from "./room.js";
 
@@ -112,20 +120,85 @@ const DIAGRAM_KINDS = [
   "userflow",
 ] as const;
 
-function buildServer(env: Env, roomId: string): McpServer {
+/**
+ * Resolve which Figma window a call means.
+ *
+ * `pinned` is a room baked into the URL. Otherwise the model passes the
+ * room it got back from figma_pair — which means the conversation carries
+ * the binding, not the server. No session store, no expiry to get wrong,
+ * and it survives the relay being stateless across colos, which a
+ * server-side session would not.
+ *
+ * The cost is that the model has to keep passing it. The tool descriptions
+ * say so, and the error below is written to be actionable rather than
+ * merely correct: it tells the agent exactly what to ask the human for.
+ */
+function resolveRoom(pinned: string, passed?: string): string {
+  const room = pinned || (passed ?? "").trim();
+  if (!room) {
+    throw new Error(
+      "Chưa biết vẽ vào cửa sổ Figma nào. Hỏi người dùng mã 6 ký tự đang hiện trong plugin (ví dụ K7P2WQ), gọi figma_pair với mã đó, rồi truyền `room` nhận được vào mọi lời gọi sau.",
+    );
+  }
+  return room;
+}
+
+function buildServer(env: Env, pinnedRoom: string): McpServer {
   const server = new McpServer(
     { name: "figjam-pro", version: "0.3.0" },
     {
-      instructions:
-        "Draws BA diagrams onto a Figma or FigJam canvas through a plugin the user is running. Always call figma_status first: if no plugin is connected, tell the user to open the file in Figma Desktop and run the plugin — do not guess and do not retry. Every draw reports findings about the MODEL (a use case nobody can start, a journey stage nothing serves); those findings are the point, so read them out rather than only saying the drawing is done.",
+      instructions: [
+        "Vẽ sơ đồ nghiệp vụ lên canvas Figma hoặc FigJam, thông qua plugin mà người dùng đang chạy.",
+        "BẮT ĐẦU: nếu chưa có `room`, hỏi người dùng mã 6 ký tự đang hiện trong plugin rồi gọi figma_pair. Truyền `room` nhận được vào mọi lời gọi sau trong cuộc trò chuyện này.",
+        "Sau đó gọi figma_status. Nếu chưa có plugin nào kết nối, bảo người dùng mở file trong Figma bản cài máy và chạy plugin — đừng đoán, đừng thử lại.",
+        "Mỗi lần vẽ đều trả về phát hiện về MODEL (một use case không ai khởi động được, một giai đoạn không ai phục vụ). Những phát hiện đó mới là thứ đáng giá — hãy đọc chúng ra cho người dùng, đừng chỉ báo là đã vẽ xong.",
+      ].join(" "),
+    },
+  );
+
+  server.tool(
+    "figma_pair",
+    "Nối phiên này với cửa sổ Figma đang mở. Người dùng đọc mã 6 ký tự hiện trong plugin; gọi tool này với mã đó, rồi truyền `room` trả về vào MỌI lời gọi sau. Chỉ cần làm một lần cho mỗi cuộc trò chuyện.",
+    { code: z.string().min(4).max(12) },
+    async ({ code }) => {
+      const raw = await env.PAIRS.get(code.trim().toUpperCase());
+      if (!raw) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Mã này không đúng hoặc đã hết hạn. Bảo người dùng mở plugin trong Figma và đọc lại mã 6 ký tự đang hiện ở khối Claude Cowork.",
+            },
+          ],
+          isError: true,
+        };
+      }
+      const pair = JSON.parse(raw) as { roomId: string; email?: string };
+      return {
+        content: [
+          {
+            type: "text",
+            text: JSON.stringify(
+              {
+                room: pair.roomId,
+                ...(pair.email ? { email: pair.email } : {}),
+                note: "Đã nối. Truyền room này vào mọi lời gọi figma_* sau đó.",
+              },
+              null,
+              2,
+            ),
+          },
+        ],
+      };
     },
   );
 
   server.tool(
     "figma_status",
-    "Is a Figma plugin connected to this room, and which file is it in? Call this first. Returns hints — a list of next steps — rather than a bare boolean.",
-    {},
-    async () => {
+    "Is a Figma plugin connected, and which file is it in? Call this first. Returns hints — a list of next steps — rather than a bare boolean.",
+    { room: z.string().optional() },
+    async (args) => {
+      const roomId = resolveRoom(pinnedRoom, args.room);
       const res = await room(env, roomId).fetch("https://room/status");
       const s = (await res.json()) as { connected: boolean; plugin: unknown; pending: number };
       const hints = s.connected
@@ -143,9 +216,10 @@ function buildServer(env: Env, roomId: string): McpServer {
     {
       op: z.enum(READ_OPERATIONS as unknown as [string, ...string[]]),
       params: z.record(z.unknown()).optional(),
+      room: z.string().optional(),
     },
-    async ({ op, params }) => {
-      const out = await callRoom(env, roomId, op as AnyOperation, params ?? {});
+    async ({ op, params, room: passed }) => {
+      const out = await callRoom(env, resolveRoom(pinnedRoom, passed), op as AnyOperation, params ?? {});
       return { content: [{ type: "text", text: JSON.stringify(out, null, 2) }] };
     },
   );
@@ -177,9 +251,11 @@ function buildServer(env: Env, roomId: string): McpServer {
       nodes: z.array(z.unknown()).optional(),
       edges: z.array(z.unknown()).optional(),
       mermaid: z.string().optional(),
+      room: z.string().optional(),
     },
     async (args) => {
-      const { type, ...spec } = args;
+      const { type, room: passed, ...spec } = args;
+      const roomId = resolveRoom(pinnedRoom, passed);
       const call = (op: AnyOperation, params: Record<string, unknown>): Promise<unknown> =>
         callRoom(env, roomId, op, params);
       const runners: Record<string, (s: unknown) => Promise<unknown>> = {
@@ -224,13 +300,25 @@ export default {
     // whole budget most users have.
     if (parts[0] === "pair" && parts[1] === "start" && request.method === "POST") {
       const roomId = secret();
-      const gated = !!env.ALLOWED_EMAIL_DOMAINS;
-      if (!gated) {
-        return Response.json({ verified: false, roomId, mcpUrl: `${url.origin}/mcp/${roomId}` });
-      }
       const code = humanCode();
+      const gated = !!env.ALLOWED_EMAIL_DOMAINS;
+      // The code is stored either way now. Ungated it is a shortcut — the
+      // user reads six characters to Claude instead of copying an 80-
+      // character URL — and gated it additionally waits for Access.
       const pair: Pair = { roomId, code, createdAt: Date.now() };
-      await env.PAIRS.put(code, JSON.stringify(pair), { expirationTtl: PAIR_TTL_MS / 1000 });
+      await env.PAIRS.put(code, JSON.stringify(pair), {
+        expirationTtl: (gated ? PAIR_TTL_MS : CODE_TTL_MS) / 1000,
+      });
+      if (!gated) {
+        return Response.json({
+          verified: false,
+          code,
+          roomId,
+          mcpUrl: `${url.origin}/mcp/${roomId}`,
+          sharedUrl: `${url.origin}/mcp`,
+          expiresInSec: CODE_TTL_MS / 1000,
+        });
+      }
       return Response.json({
         verified: true,
         code,
@@ -313,10 +401,23 @@ export default {
 
     // --- Cowork / any MCP client: /mcp/<roomId> ---
     if (parts[0] === "mcp") {
+      // Two shapes, and the SHARED one is the one to hand out:
+      //
+      //   /mcp            — one URL for the whole company. Paste once, never
+      //                     changes. The session says which Figma window it
+      //                     means by calling figma_pair with the six
+      //                     characters the plugin shows.
+      //   /mcp/<roomId>   — pinned to one window. No pairing call, but the
+      //                     URL is 80 characters somebody has to copy
+      //                     between two applications.
+      //
+      // The shared form exists because "copy this long string out of Figma
+      // and into Cowork" is a step people get wrong, and because an admin
+      // can push one URL to everybody in advance.
       const roomId = parts[1] ?? "";
-      if (!ROOM_ID.test(roomId)) {
+      if (roomId && !ROOM_ID.test(roomId)) {
         return Response.json(
-          { error: "Add the room id to the URL: https://<host>/mcp/<roomId>. The plugin shows it." },
+          { error: "Room id in the URL is malformed. Use https://<host>/mcp and pair with the code the plugin shows." },
           { status: 400 },
         );
       }

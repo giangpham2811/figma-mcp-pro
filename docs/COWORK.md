@@ -23,14 +23,31 @@ dán vào Cowork.
 
 ## Người dùng làm gì
 
-Ba bước, chi tiết ở [BAT-DAU.md](./BAT-DAU.md):
+Dán **một** đường dẫn vào Cowork, một lần duy nhất:
 
-1. Mở Figma trên máy, chạy plugin, **để cửa sổ plugin mở**
-2. Chép đường dẫn plugin hiện sẵn
-3. Dán vào Cowork → Settings → Connectors → Add custom connector
+```
+https://figjam-pro-relay.giangpm.workers.dev/mcp
+```
 
-Relay đã chạy tại `https://figjam-pro-relay.giangpm.workers.dev`. Không cần
-dựng gì nếu bạn dùng bản này.
+Đường dẫn đó **giống nhau cho mọi người** và không bao giờ đổi, nên bạn
+phát cho cả công ty trước được. Sau đó mỗi người chỉ cần mở plugin và đọc
+mã 6 ký tự cho Claude.
+
+Chi tiết cho người dùng: [BAT-DAU.md](./BAT-DAU.md).
+
+### Vì sao là mã chứ không phải URL riêng
+
+Bản đầu cấp cho mỗi người một URL 80 ký tự và bắt họ chép từ Figma sang
+Cowork. Chạy được, nhưng đó là thao tác chép-dán giữa hai ứng dụng mà người
+ta làm sai thường xuyên, và nó chặn mất khả năng phát cấu hình sẵn cho cả
+nhóm.
+
+Giờ URL là chung, còn cửa sổ Figma được gọi tên bằng sáu ký tự **đọc được
+qua điện thoại**. Bảng mã bỏ hẳn `O`, `0`, `I`, `1`, `L` — đúng những ký tự
+người ta nghe nhầm.
+
+Ai không muốn dùng mã thì URL riêng vẫn chạy: `…/mcp/<roomId>`, plugin hiện
+nó ở *Cài đặt nâng cao*.
 
 ### Đường dẫn đó chính là chìa khoá
 

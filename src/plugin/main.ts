@@ -104,6 +104,8 @@ export interface RelayConfig {
   key?: string;
   /** Shown in the panel so the user can see who they paired as. */
   email?: string;
+  /** The six characters the user reads to Claude. Not a secret on its own. */
+  code?: string;
 }
 
 const RELAY_KEY = "reqwise.relay";
@@ -342,6 +344,7 @@ const relayLoaded: Promise<void> = figma.clientStorage
           roomId: o.roomId,
           ...(typeof o.key === "string" && o.key ? { key: o.key } : {}),
           ...(typeof o.email === "string" && o.email ? { email: o.email } : {}),
+          ...(typeof o.code === "string" && o.code ? { code: o.code } : {}),
         };
       }
     }

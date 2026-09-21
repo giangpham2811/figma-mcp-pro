@@ -18,12 +18,13 @@ Thứ đáng giá không phải cái hình. Là những câu nó hỏi ngược 
 
 ## Bắt đầu
 
-### Claude Cowork — hai bước, không cài gì
+### Claude Cowork — một đường dẫn, một mã
 
-1. **Figma Desktop** → chạy plugin → khối *Claude Cowork* đã có sẵn đường
-   dẫn → bấm **Chép**
-2. **Cowork** → Settings → Connectors → **Add custom connector** → dán vào
-   ô *MCP server URL*
+1. **Một lần duy nhất**: Cowork → Settings → Connectors → Add custom
+   connector → dán `https://figjam-pro-relay.giangpm.workers.dev/mcp`.
+   Đường dẫn này dùng chung cho cả nhóm, không bao giờ đổi.
+2. **Mỗi lần dùng**: mở Figma trên máy → chạy plugin → đọc mã 6 ký tự cho
+   Claude (*"mã K7P2WQ"*). Giữ cửa sổ plugin mở.
 
 ### Claude Code — có 6 slash command
 
