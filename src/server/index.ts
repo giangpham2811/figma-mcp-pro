@@ -158,6 +158,7 @@ export const TOOLS: Tool[] = [
         },
         title: { type: "string", description: "Heading drawn on the frame, e.g. \"Purchase order approval\"." },
         subtitle: { type: "string", description: "Optional one-line context under the title." },
+        persona: { type: "string", description: "type:\"journey\" — the persona id this journey is for." },
         text: {
           type: "string",
           description: "The COMPACT form — pass this INSTEAD of the arrays, at roughly a third of the tokens. One line per thing, `#` comments, and the ids that exist only to be referenced are generated for you. sequence: `actor u \"User\"` then `u ->> api: POST /pay` (`-->>` reply, `--)` async) with `alt … else … end` / `loop … end` written where they apply. activity: `lane sys \"System\"` then `sys: pay ? \"Paid?\"` and `a > b \"label\"` (`~>` rework). erd: a table then its indented columns `id uuid pk!`, and `users.id 1-* bookings.user_id \"books\"`. state: `paid \"Paid\" final ok` and `held -> paying: Event [guard] / action`. usecase: `system \"…\"`, `uc book \"Book seats\"`, then `visitor - book` / `book => hold` / `login +> book` / `member :> visitor`. journey: `phase pay \"Thanh toán\"` then `do`/`at`/`think`/`feel`/`pain`/`fix`. persona: `source \"4 phỏng vấn\"`, then `persona tu \"Tên\" primary` and `tag`/`fact`/`quote`/`bio`/`behav`/`goal`/`pain`/`need`/`want`/`level \"X\" 4`/`app`. sitemap: `crm \"CRM\"`, children INDENTED under their parent; `screen:<artboardId>`, `/ detail`. FULL grammar per kind: figma_docs({ section, level: \"cheat\" }) — read it once before your first one. Any line it cannot read is REPORTED, never dropped. NOT for type:\"userflow\", which takes `mermaid`.",
@@ -193,6 +194,18 @@ export const TOOLS: Tool[] = [
         ),
         pages: arrayOf(
           "sitemap — the pages. id, label, parent (the page that CONTAINS it, never the page you came FROM; omit on the root), kind?(page|section: a nav heading with no page of its own|modal|external), detail?, screenId? (ONE artboard id, or a LIST: the page plus its states — a list page and its empty state are one page), cls?. There is NO edges array: the tree is the parents",
+        ),
+        personas: arrayOf(
+          "persona — id, name?, title?, role?(primary|secondary|served|negative), quote?, goals?, frustrations?, behaviours?, tools?, demographics?, scenario?, screenId?. goals+frustrations are what a persona is FOR; demographics alone is reported",
+        ),
+        stages: arrayOf(
+          "journey — a phase of INTENT, not a screen. id, label?, doing?, touchpoints? (empty is a finding, not an error), thinking?, feeling?(-2..2), pains?, opportunities?, screenId?. Ordered by position; no edges array",
+        ),
+        actors: arrayOf(
+          "usecase — id, label? (a ROLE, not a person), kind?(primary|secondary|system), detail?",
+        ),
+        useCases: arrayOf(
+          "usecase — a GOAL, not a step. id, label?, actors?, includes?(ALWAYS does), extends?(write it on the EXTENSION, pointing at the base), detail?, screenId?. No ordering, no edges array",
         ),
         states: arrayOf(
           "state — every value the ONE entity can hold. id (the value the SYSTEM stores), label?, kind?(initial: exactly one|final|choice|fork|join), entry?/do?/exit?, detail?, cls?",

@@ -21,9 +21,10 @@ const props = (name: string) => {
 describe("the declared shape of each tool", () => {
   it("figma_diagram is the one that can change a drawing", () => {
     expect(props("figma_diagram")).toEqual([
-      "channel", "diagrams", "edges", "entities", "file", "fragments", "gap", "lanes", "mermaid", "messages",
-      "nodes", "options", "page", "pages", "parentId", "participants", "patch", "place", "relations", "states",
-      "subtitle", "text", "title", "transitions", "type", "update", "x", "y",
+      "actors", "channel", "diagrams", "edges", "entities", "file", "fragments", "gap", "lanes", "mermaid",
+      "messages", "nodes", "options", "page", "pages", "parentId", "participants", "patch", "persona",
+      "personas", "place", "relations", "stages", "states", "subtitle", "text", "title", "transitions",
+      "type", "update", "useCases", "x", "y",
     ]);
   });
 
@@ -55,7 +56,13 @@ describe("the declared shape of each tool", () => {
     const schema = t.inputSchema as any;
     expect(schema.additionalProperties).toBe(false);
     for (const k of ["participants", "messages", "fragments", "entities", "relations",
-                     "states", "transitions", "lanes", "nodes", "edges", "pages"]) {
+                     "states", "transitions", "lanes", "nodes", "edges", "pages",
+                     // Added with usecase/journey/persona. Live Figma found
+                     // these missing before any test did: the compact `text`
+                     // form worked and the array form came back
+                     // INVALID_PARAMS, because additionalProperties is false
+                     // and an undeclared key is simply dropped.
+                     "personas", "stages", "actors", "useCases"]) {
       expect(schema.properties[k], k).toBeTruthy();
     }
   });
@@ -95,11 +102,13 @@ describe("what the tool list costs to load", () => {
     // whenever two Figma windows were open. Raise this deliberately, with the
     // reason in the commit message — never to make a red test green.
     //
-    // 18,700B: usecase, journey and persona joined the `type` enum and the
-    // figma_docs section list. About 72B per kind, and unavoidable — a kind
-    // missing from the enum is a kind the agent cannot call. The rest of each
-    // kind's teaching lives in figma_docs and its skill, which are loaded on
-    // demand and cost nothing until they are.
-    expect(bytes).toBeLessThan(18_700);
+    // 19,900B: usecase, journey and persona, and the four arrays they call
+    // with. The enum entries were ~72B each; the arrays are the rest, and
+    // they are NOT optional — additionalProperties is false, so an array
+    // that is not declared here is silently dropped and the call comes back
+    // INVALID_PARAMS. Live Figma found that before any test did. The
+    // descriptions were cut back to the field list once that was fixed; the
+    // teaching lives in figma_docs and the skills, loaded on demand.
+    expect(bytes).toBeLessThan(19_900);
   });
 });

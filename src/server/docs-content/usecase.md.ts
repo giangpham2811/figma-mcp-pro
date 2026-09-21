@@ -26,19 +26,17 @@ it.
 \`\`\`jsonc
 {
   "type": "usecase",
-  "spec": {
-    "title": "Vuông",
-    "actors": [
-      { "id": "nguoi_chia", "label": "Người chia tiền", "kind": "primary" },
-      { "id": "ngan_hang", "label": "Ngân hàng", "kind": "system" }
-    ],
-    "useCases": [
-      { "id": "chia", "label": "Chia tiền bữa ăn", "actors": ["nguoi_chia"], "includes": ["tinh_no"] },
-      { "id": "tinh_no", "label": "Tính ai nợ ai" },
-      { "id": "nhac", "label": "Nhắc người chưa trả", "actors": ["nguoi_chia"], "extends": ["chia"] }
-    ],
-    "options": { "system": "Vuông", "perColumn": 6 }
-  }
+  "title": "Vuông",
+  "actors": [
+    { "id": "nguoi_chia", "label": "Người chia tiền", "kind": "primary" },
+    { "id": "ngan_hang", "label": "Ngân hàng", "kind": "system" }
+  ],
+  "useCases": [
+    { "id": "chia", "label": "Chia tiền bữa ăn", "actors": ["nguoi_chia"], "includes": ["tinh_no"] },
+    { "id": "tinh_no", "label": "Tính ai nợ ai" },
+    { "id": "nhac", "label": "Nhắc người chưa trả", "actors": ["nguoi_chia"], "extends": ["chia"] }
+  ],
+  "options": { "system": "Vuông", "perColumn": 6 }
 }
 \`\`\`
 

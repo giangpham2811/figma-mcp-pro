@@ -162,6 +162,14 @@ export function layoutUseCases(
   const boundaryX = PAD_X + (leftM.length ? ACTOR_W + SIDE_GAP : 0);
   const boundaryY = top + (contentH - boundaryH) / 2;
 
+  // A use case reached only by `include` is factored-out common work, not an
+  // orphan: its actor is whoever started the including case, which is why the
+  // checker is silent about it. The layout has to agree, or the drawing marks
+  // it amber while the report says it is fine — and the drawing is what people
+  // look at. Live run caught this: stats.orphans said 2, the checker said 1.
+  const included = new Set<string>();
+  for (const uc of useCases) for (const inc of uc.includes ?? []) included.add(inc);
+
   const drawUseCases: DrawUseCase[] = [];
   const centres = new Map<string, { cx: number; cy: number; rx: number; ry: number }>();
   measured.forEach((m, i) => {
@@ -170,7 +178,7 @@ export function layoutUseCases(
     const h = rowHeights[r] ?? m.h;
     const x = boundaryX + BOUNDARY_PAD + c * (OVAL_W + OVAL_GAP_X);
     const y = boundaryY + 24 + BOUNDARY_PAD + (rowY[r] ?? 0);
-    const orphan = (m.uc.actors?.length ?? 0) === 0;
+    const orphan = (m.uc.actors?.length ?? 0) === 0 && !included.has(m.uc.id);
     drawUseCases.push({
       id: m.uc.id,
       name: `usecase:${m.uc.id} · ${m.uc.label ?? m.uc.id}`,

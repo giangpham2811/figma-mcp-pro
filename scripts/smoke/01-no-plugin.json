@@ -1,0 +1,7 @@
+[
+  { "name": "figma_status", "arguments": {}, "note": "expect pluginConnected:false and a hint — this is the baseline, not a failure" },
+  { "name": "figma_diagram", "arguments": { "type": "persona", "title": "Smoke", "text": "persona a \"A\" | | primary\n  goal: g\n  pain: p", "options": { "dryRun": true } } },
+  { "name": "figma_diagram", "arguments": { "type": "journey", "title": "Smoke", "text": "stage s1 \"One\" feeling: 1\n  touch: t\nstage s2 \"Two\" feeling: -1\n  pain: p\n  opp: o", "options": { "dryRun": true } } },
+  { "name": "figma_diagram", "arguments": { "type": "usecase", "title": "Smoke", "text": "actor u \"U\" primary\nuc a \"Goal A\"\n  by: u\n  includes: b\nuc b \"Shared work\"", "options": { "dryRun": true } } },
+  { "name": "figma_diagram", "arguments": { "type": "sitemap", "title": "Smoke", "text": "root \"Root\"\n  a \"A\"\n  b \"B\"", "options": { "dryRun": true } } }
+]

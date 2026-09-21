@@ -24,26 +24,24 @@ Pick the diagram by the question:
 \`\`\`jsonc
 {
   "type": "persona",
-  "spec": {
-    "title": "Ai dùng Vuông",
-    "personas": [
-      {
-        "id": "lan",
-        "name": "Lan",
-        "title": "Kế toán trưởng",
-        "role": "primary",           // primary | secondary | served | negative
-        "quote": "Tôi chỉ muốn biết cuối tháng ai còn nợ ai.",
-        "goals": ["Chốt sổ trong một buổi tối"],
-        "frustrations": ["Mỗi người gửi một kiểu ảnh hoá đơn"],
-        "behaviours": ["Gõ lại số tiền vào Excel của riêng mình"],
-        "tools": ["Excel", "Zalo"],
-        "demographics": { "Tuổi": 34 },
-        "scenario": "Cuối tháng, sau giờ làm, trên điện thoại",
-        "screenId": ["01", "02"]
-      }
-    ],
-    "options": { "columns": 3 }
-  }
+  "title": "Ai dùng Vuông",
+  "personas": [
+    {
+      "id": "lan",
+      "name": "Lan",
+      "title": "Kế toán trưởng",
+      "role": "primary",           // primary | secondary | served | negative
+      "quote": "Tôi chỉ muốn biết cuối tháng ai còn nợ ai.",
+      "goals": ["Chốt sổ trong một buổi tối"],
+      "frustrations": ["Mỗi người gửi một kiểu ảnh hoá đơn"],
+      "behaviours": ["Gõ lại số tiền vào Excel của riêng mình"],
+      "tools": ["Excel", "Zalo"],
+      "demographics": { "Tuổi": 34 },
+      "scenario": "Cuối tháng, sau giờ làm, trên điện thoại",
+      "screenId": ["01", "02"]
+    }
+  ],
+  "options": { "columns": 3 }
 }
 \`\`\`
 

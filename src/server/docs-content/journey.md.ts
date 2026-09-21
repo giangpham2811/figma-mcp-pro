@@ -21,33 +21,31 @@ array and nothing else.
 \`\`\`jsonc
 {
   "type": "journey",
-  "spec": {
-    "title": "Chia tiền sau chuyến đi",
-    "persona": "lan",                 // the persona id, so the two join up
-    "stages": [
-      {
-        "id": "an",
-        "label": "Ăn xong, ai đó trả tiền",
-        "doing": ["Một người quẹt thẻ cho cả nhóm"],
-        "touchpoints": ["Hoá đơn giấy"],
-        "thinking": ["Lát nữa tính sau"],
-        "feeling": 1,                 // -2..2, whole steps only
-        "pains": [],
-        "opportunities": [],
-        "screenId": ["01"]
-      },
-      {
-        "id": "chia",
-        "label": "Chia tiền",
-        "doing": ["Chụp ảnh hoá đơn", "Nhẩm chia theo đầu người"],
-        "touchpoints": [],            // nobody serves this — the finding
-        "feeling": -1,
-        "pains": ["Không nhớ ai đã chuyển khoản"],
-        "opportunities": ["Đối soát tự động khi số dư thay đổi"]
-      }
-    ],
-    "options": { "columnWidth": 220, "emotionCurve": true }
-  }
+  "title": "Chia tiền sau chuyến đi",
+  "persona": "lan",                 // the persona id, so the two join up
+  "stages": [
+    {
+      "id": "an",
+      "label": "Ăn xong, ai đó trả tiền",
+      "doing": ["Một người quẹt thẻ cho cả nhóm"],
+      "touchpoints": ["Hoá đơn giấy"],
+      "thinking": ["Lát nữa tính sau"],
+      "feeling": 1,                 // -2..2, whole steps only
+      "pains": [],
+      "opportunities": [],
+      "screenId": ["01"]
+    },
+    {
+      "id": "chia",
+      "label": "Chia tiền",
+      "doing": ["Chụp ảnh hoá đơn", "Nhẩm chia theo đầu người"],
+      "touchpoints": [],            // nobody serves this — the finding
+      "feeling": -1,
+      "pains": ["Không nhớ ai đã chuyển khoản"],
+      "opportunities": ["Đối soát tự động khi số dư thay đổi"]
+    }
+  ],
+  "options": { "columnWidth": 220, "emotionCurve": true }
 }
 \`\`\`
 

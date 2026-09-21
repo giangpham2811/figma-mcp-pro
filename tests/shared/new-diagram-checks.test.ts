@@ -212,6 +212,27 @@ describe("use case checker", () => {
     expect(has(warnings, "Include cycle")).toBe(true);
   });
 
+  it("does not MARK an included use case as an orphan either", async () => {
+    // The checker being silent is half of it. The drawing has to agree, or
+    // the oval comes out amber and dashed while the report says it is fine —
+    // and the drawing is what people look at. A live run caught exactly this:
+    // stats.orphans said 2 where the checker had reported 1.
+    const { buildUseCases } = await import("../../src/shared/usecase/index.js");
+    const built = buildUseCases({
+      title: "t",
+      actors: [{ id: "u", kind: "primary" }],
+      useCases: [
+        { id: "a", actors: ["u"], includes: ["b"] },
+        { id: "b" },
+        { id: "c" },
+      ],
+    });
+    expect(built.stats.orphans).toBe(1);
+    const byId = Object.fromEntries(built.draw.useCases.map((u) => [u.id, u.orphan]));
+    expect(byId.b, "an included use case is factored work, not an orphan").toBe(false);
+    expect(byId.c, "nothing reaches c").toBe(true);
+  });
+
   it("reports an actor who does nothing", () => {
     const { warnings } = checkUseCases(
       [{ id: "u" }, { id: "idle" }],
