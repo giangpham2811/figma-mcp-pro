@@ -204,7 +204,11 @@ describe("the shipped docs", () => {
   it("gives the same relay host in the README, the operator doc and the plugin", () => {
     // README is the copy-paste source, so it defines the answer; the other
     // two have to agree with it.
-    const readme = /```\nhttps:\/\/([a-z0-9.-]+)\/mcp\?key=([^\n]*)\n```/.exec(read("README.md"));
+    // `?key=…` is optional on purpose: the relay only demands a workspace
+    // key when one is configured, so the install page has to be allowed to
+    // show either shape. What is NOT optional is that whatever follows
+    // `key=` is a placeholder — see the leak test below.
+    const readme = /```\nhttps:\/\/([a-z0-9.-]+)\/mcp(?:\?key=[^\n]*)?\n```/.exec(read("README.md"));
     expect(readme, "README no longer shows a relay URL in a copyable block").not.toBeNull();
     const host = readme![1]!;
 

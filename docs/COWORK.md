@@ -26,15 +26,15 @@ dán vào Cowork.
 Dán **một** đường dẫn vào Cowork, một lần duy nhất:
 
 ```
-https://figjam-pro-relay.giangpm.workers.dev/mcp?key=KHOA-CONG-TY
+https://figjam-pro-relay.giangpm.workers.dev/mcp
 ```
 
 Đường dẫn đó **giống nhau cho mọi người** và không bao giờ đổi, nên bạn
 phát cho cả công ty trước được. Sau đó mỗi người chỉ cần mở plugin và đọc
 mã 6 ký tự cho Claude.
 
-Phần `?key=` là khoá chung của công ty. Nó **không nằm trong kho mã** — bạn
-phát qua kênh nội bộ. Xem *Khoá vào cửa* bên dưới.
+Relay đang chạy **không khoá**. Bật khoá thì đuôi `?key=…` được thêm vào
+đường dẫn trên và mọi người dán lại — xem *Khoá vào cửa* bên dưới.
 
 Chi tiết cho người dùng: [README](../README.md).
 
@@ -53,6 +53,10 @@ Ai không muốn dùng mã thì URL riêng vẫn chạy: `…/mcp/<roomId>`, plu
 nó ở *Cài đặt nâng cao*.
 
 ### Khoá vào cửa
+
+> **Hiện đang TẮT.** Relay nhận mọi lời gọi tới `/mcp`. Kiểm bằng
+> `GET /health`: `"workspaceKey": false`. Phần dưới là cách bật, và nó là
+> một lệnh.
 
 Không có đăng nhập, và đó là chủ ý. Ô *Add custom connector* của Cowork chỉ
 có hai trường — Name và URL — nên mọi bước nằm ngoài hai trường đó là bước
@@ -86,9 +90,9 @@ không. Có một test chặn việc khoá lọt vào README hay docs, và nó c
 
 #### Còn lại gì sau khoá
 
-Ba lớp, không lớp nào thừa:
+Ba lớp, và lúc này chỉ hai lớp dưới đang chạy:
 
-- **Khoá** chặn người ngoài chạm tới `/mcp`.
+- **Khoá** chặn người ngoài chạm tới `/mcp`. *(đang tắt)*
 - **Bộ đếm lần đoán mã** chặn người *có* khoá dò mã 6 ký tự. Mã có 31⁶ ≈ 887
   triệu tổ hợp — nghe nhiều, nhưng đoán sai không mất gì thì số đó không
   bảo vệ ai. Giới hạn 10 lần/phút cho mỗi IP.
@@ -116,9 +120,9 @@ kẻ dò đã nghỉ.
 
 ## Muốn chặt hơn nữa (tuỳ chọn)
 
-Khoá chung đã bật sẵn (mục *Khoá vào cửa*). Nó cho biết người gọi **thuộc
-công ty**, không cho biết **là ai** — không danh tính, không vết kiểm toán.
-Cần tới mức đó thì làm tiếp cách dưới.
+Khoá chung (mục *Khoá vào cửa*) cho biết người gọi **thuộc công ty**, không
+cho biết **là ai** — không danh tính, không vết kiểm toán. Cần tới mức đó
+thì làm tiếp cách dưới.
 
 ### Xác minh email công ty
 
@@ -136,7 +140,8 @@ thường.
 
 ```bash
 curl https://figjam-pro-relay.giangpm.workers.dev/health
-# {"mode":"workspace-key","guards":{"workspaceKey":true,"pairGuess":"durable-object"}}
+# {"mode":"open (the room id in the URL is the credential)",
+#  "guards":{"workspaceKey":false,"pairGuess":"durable-object"}}
 ```
 
 `workspaceKey: false` nghĩa là relay đang **mở toang** — bất kỳ ai biết địa
@@ -171,8 +176,9 @@ domain không khai báo.
 npx wrangler secret put WORKSPACE_KEY
 ```
 
-Bỏ bước này thì relay mở cho bất kỳ ai biết địa chỉ. `GET /health` sẽ nói
-thẳng: `"workspaceKey": false`.
+Bỏ bước này thì relay mở cho bất kỳ ai biết địa chỉ — đó là trạng thái
+hiện tại của relay dùng chung. `GET /health` nói thẳng:
+`"workspaceKey": false`.
 
 ### 4. Trỏ plugin sang relay của bạn
 

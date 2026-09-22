@@ -44,18 +44,14 @@ từ Figma. Nếu chưa có, nhờ họ đọc [docs/HUONG-DAN.md](docs/HUONG-DA
 | Ô | Điền |
 |---|---|
 | Name | `Figma` |
-| MCP server URL | dòng dưới đây, đã thay khoá vào |
+| MCP server URL | dán dòng dưới đây |
 
 ```
-https://figjam-pro-relay.giangpm.workers.dev/mcp?key=KHOA-CONG-TY
+https://figjam-pro-relay.giangpm.workers.dev/mcp
 ```
 
-Thay `KHOA-CONG-TY` bằng khoá công ty gửi bạn. **Khoá không nằm trong trang
-này và cũng không nằm ở đâu trong kho mã** — hỏi người phụ trách kỹ thuật,
-hoặc tìm trong kênh nội bộ nơi họ đã phát.
-
-Xong rồi thì dán một lần, **không bao giờ phải đụng lại** — địa chỉ này
-dùng chung cho cả nhóm và không đổi.
+Dán một lần, **không bao giờ phải đụng lại** — địa chỉ này dùng chung cho
+cả nhóm và không đổi.
 
 > Công ty bạn tự dựng relay riêng thì dùng đường dẫn họ gửi, thay cho dòng
 > trên. Phần còn lại giống hệt.
@@ -142,11 +138,6 @@ và nói ra, thay vì vẽ một bức tranh trông đẹp mà sai.
 đọc nó trong buổi họp có người ngoài; lỡ rồi thì mở plugin → *Cài đặt nâng
 cao* → **Lấy đường dẫn mới**.
 
-**Khoá công ty thì đừng dán đi đâu cả.** Không lên chat nhóm, không vào
-ticket, không chụp màn hình gửi. Ai có khoá là gõ được cửa relay của công
-ty. Lỡ lộ thì báo người phụ trách kỹ thuật — đổi khoá mất đúng một lệnh,
-chỉ tội cả nhóm phải dán lại đường dẫn.
-
 ---
 
 ## Gặp trục trặc
@@ -160,7 +151,6 @@ chỉ tội cả nhóm phải dán lại đường dẫn.
 | Nhiều cửa sổ Figma đang mở, vẽ nhầm file | Nói rõ tên file: *"vẽ vào file Thiết kế App"* |
 | Vẽ xong không thấy đâu | Nhấn **Shift + 1** để thu toàn cảnh — nó đặt bản vẽ ở chỗ trống, có thể ngoài tầm nhìn |
 | Mã báo hết hạn | Mở plugin, đọc mã mới |
-| Cowork báo connector lỗi, hoặc *"workspace key"* | Thiếu `?key=…` ở cuối đường dẫn, hoặc khoá sai. Sửa lại trong Settings → Connectors |
 | Báo *"Quá nhiều lần thử ghép cặp"* | Đã đọc nhầm mã nhiều lần. Đợi một phút, đọc lại mã cho đúng |
 
 Vẫn không được thì bảo Claude: *"kiểm tra kết nối giúp tôi"*. Nó chạy chẩn
