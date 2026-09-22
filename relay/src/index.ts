@@ -182,6 +182,7 @@ function buildServer(env: Env, pinnedRoom: string, clientIp: string): McpServer 
       instructions: [
         "Vẽ sơ đồ nghiệp vụ lên canvas Figma hoặc FigJam, thông qua plugin mà người dùng đang chạy.",
         "BẮT ĐẦU: nếu chưa có `room`, hỏi người dùng mã 6 ký tự đang hiện trong plugin rồi gọi figma_pair. Truyền `room` nhận được vào mọi lời gọi sau trong cuộc trò chuyện này.",
+        "figma_pair trả về tên file và tên trang đang nối. ĐỌC TÊN FILE ĐÓ RA CHO NGƯỜI DÙNG ngay, trước khi vẽ: một phòng trỏ tới cửa sổ Figma chạy plugin gần nhất, không phải tới một file cố định, nên người mở nhiều cửa sổ có thể đang ở file khác với file họ nghĩ. Vẽ nhầm file thì họ phải tự dọn.",
         "Sau đó gọi figma_status. Nếu chưa có plugin nào kết nối, bảo người dùng mở file trong Figma bản cài máy và chạy plugin — đừng đoán, đừng thử lại.",
         "Mỗi lần vẽ đều trả về phát hiện về MODEL (một use case không ai khởi động được, một giai đoạn không ai phục vụ). Những phát hiện đó mới là thứ đáng giá — hãy đọc chúng ra cho người dùng, đừng chỉ báo là đã vẽ xong.",
       ].join(" "),
@@ -229,6 +230,27 @@ function buildServer(env: Env, pinnedRoom: string, clientIp: string): McpServer 
         };
       }
       const pair = JSON.parse(raw) as { roomId: string; email?: string };
+
+      // Say WHICH canvas this room is pointing at, right here.
+      //
+      // A room is not a file — it is whichever plugin window dialled in
+      // most recently, and a user with several Figma windows moves it
+      // around without meaning to. The pairing code stays the same
+      // throughout, so the code cannot tell anybody where a drawing is
+      // about to land. Returning the file name makes the first thing the
+      // model can say be "I am on <file> · <page>", which is the moment a
+      // wrong answer is still free. Afterwards it is somebody's board.
+      let on: { fileName?: string; pageName?: string; editorType?: string } | null = null;
+      try {
+        const st = (await (await room(env, pair.roomId).fetch("https://room/status")).json()) as {
+          connected?: boolean;
+          plugin?: { fileName?: string; pageName?: string; editorType?: string };
+        };
+        on = st.connected && st.plugin ? st.plugin : null;
+      } catch {
+        // Status is a courtesy; a room that cannot be reached must not
+        // turn a successful pairing into a failure.
+      }
       return {
         content: [
           {
@@ -237,7 +259,15 @@ function buildServer(env: Env, pinnedRoom: string, clientIp: string): McpServer 
               {
                 room: pair.roomId,
                 ...(pair.email ? { email: pair.email } : {}),
-                note: "Đã nối. Truyền room này vào mọi lời gọi figma_* sau đó.",
+                ...(on
+                  ? {
+                      connectedTo: { file: on.fileName, page: on.pageName, surface: on.editorType },
+                      note: `Đã nối với file "${on.fileName}" · trang "${on.pageName}". NÓI TÊN FILE NÀY CHO NGƯỜI DÙNG trước khi vẽ bất cứ thứ gì — nếu sai file, bảo họ chạy plugin ở file đúng. Truyền room này vào mọi lời gọi figma_* sau đó.`,
+                    }
+                  : {
+                      connectedTo: null,
+                      note: "Ghép cặp xong nhưng CHƯA có plugin nào cắm vào phòng này. Bảo người dùng mở file trong Figma bản cài máy và chạy plugin, rồi thử lại. Truyền room này vào mọi lời gọi figma_* sau đó.",
+                    }),
               },
               null,
               2,
