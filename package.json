@@ -24,7 +24,8 @@
     "prepare": "node scripts/build.mjs",
     "verify": "npm run typecheck && npm test",
     "package": "node scripts/package.mjs",
-    "install:figjam": "node scripts/install-figjam.mjs"
+    "install:figjam": "node scripts/install-figjam.mjs",
+    "package:plugin": "npm run build && node scripts/package-plugin.mjs"
   },
   "engines": {
     "node": ">=18"

@@ -35,18 +35,46 @@ Chọn một trong hai đường:
 
 Người dùng cuối **không phải cài gì**. Họ chỉ cần Figma và một lần chép-dán.
 
-Việc của bạn là đưa plugin đến tay họ. Hai cách:
+Việc của bạn là đưa plugin đến tay họ, và đây là chỗ nghẽn thật sự: bản
+bạn đang chạy là *import from manifest* từ một thư mục trên **máy bạn**.
+Máy khác không thấy nó. Hai cách ra khỏi chỗ đó.
 
-**Nhanh, cho vài người:** gửi họ thư mục `plugin/`, hướng dẫn *Plugins →
-Development → Import plugin from manifest…*. Chạy được, nhưng mỗi người
-phải tự làm và nhiều người sẽ vướng.
+#### Nhanh, cho vài người: gửi file ZIP
 
-**Đúng, cho cả công ty:** publish plugin. Đây mới là thứ gỡ rào cản thật.
+```bash
+npm run package:plugin
+# reqwise-figma-plugin-0.3.0.zip  (135 KB)
+```
+
+ZIP chứa đúng ba file Figma cần — `manifest.json`, `code.js`, `ui.html` —
+cộng một `CAI-DAT.txt` viết cho người không biết npm là gì. Không có
+sourcemap: nó nặng 1.8 MB so với 380 KB của plugin, và nó là toàn bộ mã
+nguồn TypeScript trong một file không ai đọc.
+
+Gửi qua Slack hay Drive, họ giải nén rồi *Plugins → Development → Import
+plugin from manifest…*.
+
+Hai điều phải nói trước với họ, vì cả hai đều gây mất công về sau:
+
+- **Đừng xoá thư mục đã giải nén.** Figma đọc thẳng từ đó mỗi lần chạy.
+- **Plugin kiểu này không tự cập nhật.** Sửa một lỗi là phải gửi ZIP mới
+  cho từng người, và người nào quên cập nhật sẽ báo lại đúng cái lỗi bạn
+  vừa sửa.
+
+#### Đúng, cho cả công ty: publish
+
+Đây mới là thứ gỡ rào cản thật — cài một cú bấm, cập nhật tự động, không
+ai giữ thư mục nào trên máy.
 
 - Có gói **Organization/Enterprise** → publish riêng cho tổ chức. Không qua
-  kiểm duyệt, không lộ ra ngoài.
+  kiểm duyệt, không lộ ra ngoài. Đây là đường nên đi.
 - Không có → publish công khai lên Figma Community. Mất vài ngày kiểm
-  duyệt, sau đó ai cũng cài bằng một cú bấm.
+  duyệt, và **ai trên thế giới cũng cài được** — cân nhắc nếu tên file hay
+  ảnh minh hoạ lộ thông tin nội bộ.
+
+`devAllowedDomains` (danh sách localhost trong manifest) **tự động bị loại**
+khỏi bản publish, nên bản phát hành chỉ gọi được relay chứ không gọi được
+máy ai.
 
 Relay đã dựng sẵn và người dùng không cần biết nó tồn tại. Chi tiết cùng ba
 mức bảo mật: [COWORK.md](./COWORK.md).
