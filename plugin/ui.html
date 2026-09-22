@@ -675,7 +675,30 @@
       case "handshake":
         handshake = { pluginVersion: msg.pluginVersion, protocolVersion: msg.protocolVersion };
         // Arrives before the first dial on purpose — see main.ts.
-        if (msg.relay && msg.relay.host && msg.relay.roomId) relay = msg.relay;
+        if (msg.relay && msg.relay.host && msg.relay.roomId) {
+          relay = msg.relay;
+          // Re-dial, because the socket opened at the bottom of this file
+          // is already going somewhere else.
+          //
+          // "Kick off: connect()" runs the moment the script loads, and at
+          // that point `relay` is null, so it dials localhost. The
+          // handshake that RESTORES a saved relay arrives afterwards. Then
+          // renderCowork() paints the pairing code and the /mcp URL, and
+          // the panel now advertises a relay it is not connected to —
+          // while the socket quietly serves the local bridge instead.
+          //
+          // That is the worst shape a bug can take here: every visible
+          // signal says it worked. The code is on screen, the panel looks
+          // healthy, and the relay never sees a single request. Only the
+          // footer, in small grey text, still reads "localhost".
+          //
+          // Cheap to undo: the localhost dial is milliseconds old.
+          if (ws) { try { ws.close(); } catch (e) {} ws = null; }
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+          backoff = BACKOFF_MIN;
+          connect();
+        }
         if (!el.relayHost.value) el.relayHost.value = relay ? relay.host : DEFAULT_RELAY;
         renderCowork();
         // No room yet? Get one now, quietly. The panel should be useful the

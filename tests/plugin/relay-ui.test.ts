@@ -118,3 +118,40 @@ describe("manifest network access", () => {
     expect(manifest.networkAccess.reasoning ?? "").not.toHaveLength(0);
   });
 });
+
+describe("restoring a saved relay on open", () => {
+  /** The `case "handshake":` arm, up to its `break;`. */
+  const handshake = (() => {
+    const start = UI.indexOf('case "handshake":');
+    if (start < 0) throw new Error('no handshake case in ui.html');
+    const end = UI.indexOf("break;", start);
+    return UI.slice(start, end);
+  })();
+
+  /**
+   * The panel showed a pairing code for a relay it was not connected to,
+   * and nothing on screen contradicted that.
+   *
+   * `connect()` runs at the bottom of ui.html the moment the script loads,
+   * when `relay` is still null — so it dials localhost. The handshake that
+   * restores a saved relay arrives after that, and used to only repaint.
+   * So the code and the /mcp URL appeared, looking exactly like success,
+   * while the socket served the local bridge and the relay logged nothing
+   * at all. Two and a half minutes of live relay logs during the hunt:
+   * zero requests, while the user was looking at a pairing code.
+   */
+  it("dials the relay after restoring one, instead of only repainting", () => {
+    expect(handshake).toContain("relay = msg.relay");
+    expect(
+      /relay = msg\.relay[\s\S]*?connect\(\)/.test(handshake),
+      "handshake restores a saved relay but never re-dials; the socket stays on localhost while the panel advertises the relay",
+    ).toBe(true);
+  });
+
+  it("drops the localhost socket before re-dialling, so both are not open", () => {
+    expect(
+      /relay = msg\.relay[\s\S]*?ws\.close\(\)[\s\S]*?connect\(\)/.test(handshake),
+      "re-dial without closing the existing socket leaves the localhost one live",
+    ).toBe(true);
+  });
+});
