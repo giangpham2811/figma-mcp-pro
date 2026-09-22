@@ -787,14 +787,36 @@
     }
     renderMeta();
 
+    /**
+     * Held locally as well as in `ws`, so every handler below can tell
+     * whether it is still the live socket.
+     *
+     * Without that check a closing socket runs `ws = null` over whatever
+     * replaced it. The sequence is short and it bit hard: boot dials
+     * localhost (A); the handshake restores a saved relay, closes A and
+     * dials the relay (B); A's close event arrives AFTERWARDS and nulls
+     * `ws`, discarding B, then schedules another reconnect; that dials C,
+     * the relay evicts B as "replaced", and B's close event nulls `ws`
+     * again, discarding C.
+     *
+     * The result reads like a different bug entirely. The relay sees a
+     * live socket and reports connected:true, the panel announces that
+     * another Figma window took the room, and every operation times out
+     * after 30s — with exactly one Figma window open. The plugin was
+     * fighting itself, and the honest symptom, an unanswered op, was the
+     * only one that pointed anywhere near the truth.
+     */
+    var sock;
     try {
-      ws = new WebSocket(url);
+      sock = new WebSocket(url);
     } catch (e) {
       scheduleReconnect(true);
       return;
     }
+    ws = sock;
 
-    ws.onopen = function () {
+    sock.onopen = function () {
+      if (sock !== ws) return;   // a socket we already replaced
       connectedPort = port;   // null on the relay; renderMeta handles that
       backoff = BACKOFF_MIN;
       attemptCount = 0;
@@ -809,7 +831,8 @@
       renderMeta();
     };
 
-    ws.onmessage = function (event) {
+    sock.onmessage = function (event) {
+      if (sock !== ws) return;   // a socket we already replaced
       var data;
       try { data = JSON.parse(event.data); } catch (e) { return; }
       if (!data || typeof data !== "object") return;
@@ -845,11 +868,13 @@
       }
     };
 
-    ws.onerror = function () {
+    sock.onerror = function () {
+      if (sock !== ws) return;   // a socket we already replaced
       // onclose will handle reconnect.
     };
 
-    ws.onclose = function (event) {
+    sock.onclose = function (event) {
+      if (sock !== ws) return;   // a socket we already replaced
       stopHeartbeat();
       ws = null;
       connectedPort = null;

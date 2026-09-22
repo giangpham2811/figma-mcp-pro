@@ -155,3 +155,32 @@ describe("restoring a saved relay on open", () => {
     ).toBe(true);
   });
 });
+
+describe("a socket that has already been replaced", () => {
+  /**
+   * Every handler must check it is still the live socket before touching
+   * shared state, because `onclose` sets `ws = null`.
+   *
+   * Unguarded, a socket closing late nulls whatever replaced it, and the
+   * plugin ends up with a live connection it holds no reference to: the
+   * relay reports connected, the panel reports that another Figma window
+   * stole the room, and every operation times out — with one window open.
+   * Three separate wrong diagnoses came out of that one missing line.
+   */
+  for (const handler of ["onopen", "onmessage", "onerror", "onclose"]) {
+    it(`ignores a stale ${handler}`, () => {
+      const at = UI.indexOf(`sock.${handler} = function`);
+      expect(at, `connect() no longer assigns sock.${handler}`).toBeGreaterThan(-1);
+      const head = UI.slice(at, at + 220);
+      expect(
+        head.includes("if (sock !== ws) return;"),
+        `sock.${handler} can run for a socket that was already replaced, and clobber the live one`,
+      ).toBe(true);
+    });
+  }
+
+  it("keeps the socket in a local, so the guard has something to compare", () => {
+    expect(UI).toContain("sock = new WebSocket(url);");
+    expect(UI, "the socket must still be published to ws for senders").toContain("ws = sock;");
+  });
+});
