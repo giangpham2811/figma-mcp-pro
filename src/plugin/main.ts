@@ -8,7 +8,7 @@ import {
   PROTOCOL_VERSION,
   BATCH_CHUNK_SIZE,
 } from "../shared/protocol.js";
-import { makeContext } from "./context.js";
+import { makeContext, ensureAllPagesLoaded } from "./context.js";
 import { toBridgeError, err } from "./errors.js";
 import { HANDLERS, assertRegistryComplete, Handler } from "./handlers/registry.js";
 import { installDiagramLive } from "./diagram-live.js";
@@ -141,6 +141,9 @@ let inFlight = 0;
 async function dispatch(req: BridgeRequest): Promise<BridgeResponse> {
   inFlight += 1;
   try {
+    // Before ANY handler, not inside the ones that happen to need it.
+    // Memoised, so only the first op of a plugin run pays for it.
+    await ensureAllPagesLoaded();
     return await dispatchInner(req);
   } finally {
     inFlight -= 1;

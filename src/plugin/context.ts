@@ -43,6 +43,33 @@ const LOOKUP_SETTLE_MS = 2500;
 let allPagesLoaded: Promise<unknown> | null = null;
 
 /**
+ * Load every page once, and remember that it was done.
+ *
+ * Under `documentAccess: "dynamic-page"` only the current page is in
+ * memory, and reading `figma.root.children` before this has been awaited
+ * THROWS. That throw happens inside the message handler, which takes the
+ * socket down with it, so the symptom at the other end is not "operation
+ * failed" but "the Figma plugin disconnected while this was in flight" —
+ * a message that sends you looking at the network, which is fine.
+ *
+ * Thirteen call sites across eight files read `figma.root.children`, and
+ * exactly one of them remembered to load first. Awaiting this once in the
+ * dispatcher is the version that cannot be forgotten by the next handler
+ * somebody adds.
+ */
+export async function ensureAllPagesLoaded(): Promise<void> {
+  if (!allPagesLoaded) {
+    // `?.`: a runtime without loadAllPagesAsync (older Figma, test mocks)
+    // needs no load and must not crash here.
+    allPagesLoaded = Promise.resolve(figma.loadAllPagesAsync?.());
+    allPagesLoaded.catch(() => {
+      allPagesLoaded = null;
+    });
+  }
+  await allPagesLoaded;
+}
+
+/**
  * figma.getNodeByIdAsync that survives unloaded pages. A lookup still pending
  * after LOOKUP_SETTLE_MS is assumed to reach into an unloaded page: every
  * page is loaded once, then the lookup is retried. When the retry also fails,
