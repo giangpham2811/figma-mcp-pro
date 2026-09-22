@@ -86,8 +86,22 @@ export async function createUserflow(ctx: HandlerContext): Promise<unknown> {
       ctx,
       { name: d.name, title: d.title, subtitle: d.subtitle, x: d.x, y: d.y, w: d.w, h: d.h },
       [
-        ...boxesToFigJam(d.boxes as never, { prefix: "screen" }),
-        ...boxesToFigJam(d.diamonds as never, { prefix: "decision", shape: () => "DIAMOND" }),
+        // No `as never` here any more. That cast was load-bearing in the
+        // worst way: userflow's boxes are flat x/y/w/h while the adapter
+        // reads `at`, and the cast is what stopped the compiler saying so.
+        ...boxesToFigJam(d.boxes, {
+          prefix: "screen",
+          // "1.2 · pick-number" — the string the artboard is named with.
+          // The Design path prints it under the title; dropping it on a
+          // board would quietly make the two surfaces disagree.
+          extra: (b) => ((b as DrawBox).ref ? [(b as DrawBox).ref!] : []),
+        }),
+        // A diamond keeps its text in `text`, not `title`, so without this
+        // it would draw the right shape with nothing written in it.
+        ...boxesToFigJam(
+          d.diamonds.map((dia) => ({ ...dia, title: dia.text })),
+          { prefix: "decision", shape: () => "DIAMOND" },
+        ),
       ],
       edgesToFigJam(d.edges),
       font,

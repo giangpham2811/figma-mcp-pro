@@ -267,3 +267,34 @@ describe("renderFigJam", () => {
     expect(c.warnings.join(" ")).toContain("not available on this board");
   });
 });
+
+describe("boxes that carry their coordinates flat", () => {
+  /**
+   * userflow is the odd one out and always has been: its DrawBox and
+   * DrawDiamond hold x/y/w/h directly, while activity, erd, state and
+   * sitemap nest them under `at`. The adapter read `at` and the call sites
+   * hid the mismatch behind `as never`, so nothing complained until a real
+   * board tried to draw one and got "Cannot read properties of undefined
+   * (reading 'w')" — after the request had already crossed the network,
+   * which is the most expensive possible place to learn about a type.
+   */
+  it("reads a flat box the same as a nested one", () => {
+    const flat = boxesToFigJam([{ id: "pay", title: "Thanh toán", x: 10, y: 20, w: 200, h: 90 }], {
+      prefix: "screen",
+    });
+    expect(flat[0]!.at).toEqual({ x: 10, y: 20, w: 200, h: 90 });
+
+    const nested = boxesToFigJam([{ id: "pay", title: "Thanh toán", at: { x: 10, y: 20, w: 200, h: 90 } }], {
+      prefix: "screen",
+    });
+    expect(nested[0]!.at).toEqual(flat[0]!.at);
+  });
+
+  it("never hands the renderer an undefined placement", () => {
+    // render.ts does box.at.w unguarded, so a missing `at` is a crash, not
+    // a misplaced shape.
+    const [only] = boxesToFigJam([{ id: "x" }], { prefix: "screen" });
+    expect(only!.at).toBeDefined();
+    expect(Number.isFinite(only!.at.w)).toBe(true);
+  });
+});

@@ -22,13 +22,35 @@ import type { FigJamBox, FigJamLink } from "./render.js";
 export interface GraphBox {
   id: string;
   name?: string;
-  at: Placement;
+  /**
+   * Nested placement — what activity, erd, state and sitemap emit.
+   *
+   * Optional because userflow does not: its DrawBox and DrawDiamond carry
+   * x/y/w/h flat, and always have. The call sites papered over the
+   * mismatch with `as never`, which silenced the one compiler error that
+   * would have said so, and the result was a crash reading `at.w` the
+   * first time anybody drew a userflow on a board. Accepting both here is
+   * cheaper than a migration, and it is the single point all five kinds
+   * pass through.
+   */
+  at?: Placement;
+  /** Flat placement — what userflow emits. Exactly one of the two is set. */
+  x?: number;
+  y?: number;
+  w?: number;
+  h?: number;
   fill?: string;
   stroke?: string;
   title?: string | string[];
   detail?: string | string[];
   kind?: string;
   cls?: FlowClass;
+}
+
+/** Whichever of the two placement shapes this box came with. */
+export function placementOf(box: GraphBox): Placement {
+  if (box.at) return box.at;
+  return { x: box.x ?? 0, y: box.y ?? 0, w: box.w ?? 0, h: box.h ?? 0 };
 }
 
 function toLines(v: string | string[] | undefined): string[] {
@@ -87,7 +109,7 @@ export function boxesToFigJam(items: GraphBox[], opts: AdaptOptions): FigJamBox[
     return {
       id: b.id,
       name: b.name ?? `${opts.prefix}:${b.id} · ${label.join(" ")}`,
-      at: b.at,
+      at: placementOf(b),
       lines: opts.detailAsNote ? [...label, ...extra] : [...label, ...detail, ...extra],
       shape: opts.shape?.(b) ?? shapeFor(b.kind, b.cls),
       ...(b.fill ? { fill: b.fill } : {}),
