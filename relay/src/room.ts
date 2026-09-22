@@ -98,12 +98,20 @@ export class FigmaRoom {
       const [client, server] = Object.values(pair) as [WebSocket, WebSocket];
 
       // One window per room. A second plugin claiming the same room means
-      // the first one reloaded, or somebody guessed the id; either way the
-      // newest connection wins and the old one is closed rather than left
-      // to answer requests nobody is reading.
+      // the first one reloaded, or another Figma window restored the same
+      // saved room; either way the newest connection wins and the old one
+      // is closed rather than left to answer requests nobody is reading.
+      //
+      // The reason string is exactly "replaced" because that is what the
+      // local bridge sends (src/server/bridge.ts) and what the plugin
+      // matches on. This used to read "replaced by a newer connection",
+      // which is better English and completely invisible to `reason ===
+      // "replaced"` — so the evicted window mistook eviction for a dropped
+      // network and reconnected at once, evicting the other one, forever.
+      // Two open windows pinned the relay at one reconnect per second.
       for (const old of this.state.getWebSockets()) {
         try {
-          old.close(1000, "replaced by a newer connection");
+          old.close(1000, "replaced");
         } catch {
           /* already gone */
         }

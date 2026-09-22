@@ -834,6 +834,21 @@
       // a reload). Do NOT rejoin the same channel — that would steal it back
       // in an endless tug-of-war. Reconnect fresh and let the server assign a
       // new one.
+      if (event && event.reason === "replaced" && relay) {
+        // On the relay there is ONE room and one socket in it, so
+        // reconnecting after being replaced does not recover anything — it
+        // steals the room back from the window that just took it, which
+        // then steals it back. Stop, and say who has it, with the
+        // Reconnect button right there for taking it back on purpose.
+        replacedByPeer = true;
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
+        setState("offline", "Cửa sổ Figma khác đã nhận phòng này");
+        el.coworkHint.textContent =
+          "Một cửa sổ Figma khác vừa chiếm phòng relay (phòng dùng chung cho mọi cửa sổ). Đóng plugin ở cửa sổ kia, hoặc bấm Reconnect để lấy lại phòng về đây.";
+        renderMeta();
+        return;
+      }
       if (event && event.reason === "replaced") {
         replacedByPeer = true;
         channel = null;
