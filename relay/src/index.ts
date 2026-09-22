@@ -102,6 +102,20 @@ const ROOM_ID = /^[A-Za-z0-9_-]{6,64}$/;
  */
 const PAIR_GUARD = "pair-guard";
 
+/**
+ * `*` rather than an allowlist because the caller is a sandboxed iframe
+ * whose Origin is the literal string "null" — there is no origin to name.
+ * Safe here for the same reason it would be unsafe on /mcp: these two
+ * endpoints hand out a brand-new empty room, which is worth nothing until
+ * a plugin attaches to it from the machine that asked.
+ */
+const CORS: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+  "Access-Control-Max-Age": "86400",
+};
+
 function room(env: Env, id: string): DurableObjectStub {
   return env.FIGMA_ROOM.get(env.FIGMA_ROOM.idFromName(id));
 }
@@ -332,6 +346,24 @@ export default {
     const url = new URL(request.url);
     const parts = url.pathname.split("/").filter(Boolean);
 
+    // CORS, for the /pair/* endpoints only.
+    //
+    // A Figma plugin runs in a sandboxed iframe, so its requests carry
+    // `Origin: null` and the browser will not let it READ a cross-origin
+    // response that does not say it may. Without this the relay looked
+    // healthy from every angle that mattered to me and was broken for the
+    // only client that matters: curl saw 200, Cowork saw 200 — because
+    // both are server-to-server and CORS never applies — while the plugin
+    // created a room, could not read the room id back, and retried. The
+    // visible symptom was six dots where the pairing code should be, and
+    // a pile of orphan codes in KV, one per retry.
+    //
+    // Deliberately NOT applied to /mcp. That path is only ever called
+    // server-to-server, and opening it to browsers would let any web page
+    // a user happens to visit drive this relay from inside their browser.
+    const cors = parts[0] === "pair" ? CORS : undefined;
+    if (cors && request.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+
     // --- the plugin asks for a room ---
     //
     // Answers immediately with a usable room. When ALLOWED_EMAIL_DOMAINS is
@@ -358,23 +390,23 @@ export default {
           mcpUrl: `${url.origin}/mcp/${roomId}`,
           sharedUrl: `${url.origin}/mcp`,
           expiresInSec: CODE_TTL_MS / 1000,
-        });
+        }, { headers: cors });
       }
       return Response.json({
         verified: true,
         code,
         loginUrl: `${url.origin}/login?code=${code}`,
         expiresInSec: PAIR_TTL_MS / 1000,
-      });
+      }, { headers: cors });
     }
 
     // --- pairing: the plugin polls until a human has vouched ---
     if (parts[0] === "pair" && parts[1] === "status") {
       const code = url.searchParams.get("code") ?? "";
       const raw = await env.PAIRS.get(code);
-      if (!raw) return Response.json({ state: "expired" });
+      if (!raw) return Response.json({ state: "expired" }, { headers: cors });
       const pair = JSON.parse(raw) as Pair;
-      if (!pair.token) return Response.json({ state: "waiting" });
+      if (!pair.token) return Response.json({ state: "waiting" }, { headers: cors });
       // One-shot: the token is handed over once and the code dies with it,
       // so a code left on a screen behind somebody is not a second door.
       await env.PAIRS.delete(code);
@@ -383,7 +415,7 @@ export default {
         roomId: pair.roomId,
         email: pair.email,
         mcpUrl: `${url.origin}/mcp/${pair.roomId}`,
-      });
+      }, { headers: cors });
     }
 
     // --- pairing: the human, behind Cloudflare Access ---

@@ -1012,10 +1012,16 @@
         pollPair(host, body.code);
       })
       .catch(function (e) {
-        if (!silent) {
-          el.coworkHint.textContent =
-            "Không gọi được relay (" + e.message + "). Kiểm tra địa chỉ, và kiểm tra domain đã nằm trong networkAccess của manifest chưa.";
-        }
+        // Say something either way. `silent` used to mean "say nothing",
+        // and that turned one failure into a worse one: the panel promises
+        // a URL, so a user who never gets one sits watching six dots and a
+        // box reading "Đang lấy đường dẫn…" with nothing to act on. The
+        // local Claude Code path still should not get a wall of red, so
+        // the quiet version is one line that names the button to press.
+        el.coworkHint.textContent = silent
+          ? "Chưa lấy được đường dẫn relay (" + e.message + "). Dùng Claude Code thì bỏ qua; dùng Cowork thì mở Cài đặt nâng cao → Lấy đường dẫn mới."
+          : "Không gọi được relay (" + e.message + "). Kiểm tra địa chỉ, và kiểm tra domain đã nằm trong networkAccess của manifest chưa.";
+        el.mcpUrlTop.placeholder = "Chưa có đường dẫn";
       })
       .then(function () { el.pairStart.disabled = false; });
   }
